@@ -150,12 +150,6 @@ fn handle_key(
                 }
             }
         }
-        KeyCode::Up | KeyCode::Char('k') if app.focus == Focus::Devices => {
-            app.select_previous();
-        }
-        KeyCode::Down | KeyCode::Char('j') if app.focus == Focus::Devices => {
-            app.select_next();
-        }
         KeyCode::Char('p') if app.focus == Focus::Events => {
             app.toggle_event_scroll();
         }

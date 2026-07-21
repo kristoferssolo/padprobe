@@ -6,11 +6,8 @@ mod live_state;
 mod overlays;
 
 use self::{
-    devices::{render_device_selector, render_devices},
-    events::render_events,
-    footer::render_footer,
-    live_state::render_live_state,
-    overlays::render_help,
+    devices::render_device_selector, events::render_events, footer::render_footer,
+    live_state::render_live_state, overlays::render_help,
 };
 use crate::app::App;
 use ratatui::{
@@ -44,13 +41,7 @@ fn render_full(frame: &mut Frame<'_>, app: &App, area: Rect) {
             Constraint::Length(1),
         ])
         .split(area);
-    let top = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(34), Constraint::Percentage(66)])
-        .split(vertical[0]);
-
-    render_devices(frame, app, top[0]);
-    render_live_state(frame, app, top[1]);
+    render_live_state(frame, app, vertical[0]);
     render_events(frame, app, vertical[1]);
     render_footer(frame, app, vertical[2]);
 }

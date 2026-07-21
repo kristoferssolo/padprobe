@@ -2,28 +2,12 @@ use ratatui::{
     Frame,
     layout::Rect,
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, List, ListItem, Paragraph},
 };
 
-use crate::app::{App, Focus};
+use crate::app::App;
 
-use super::layout::{ACTIVE_BORDER, WARNING, centered_rect, focused_block};
-
-pub(super) fn render_devices(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    let block = focused_block(" Devices ", app.focus == Focus::Devices);
-    if app.devices.is_empty() {
-        frame.render_widget(
-            Paragraph::new(
-                "No controllers detected.\n\nConnect a controller, then wait for PadProbe to detect it.",
-            )
-            .block(block)
-            .wrap(Wrap { trim: true }),
-            area,
-        );
-    } else {
-        frame.render_widget(List::new(device_items(app)).block(block), area);
-    }
-}
+use super::layout::{ACTIVE_BORDER, WARNING, centered_rect};
 
 pub(super) fn render_device_selector(frame: &mut Frame<'_>, app: &App, area: Rect) {
     let height = (app.device_order.len() as u16 + 2).clamp(5, 14);
