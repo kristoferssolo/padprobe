@@ -191,6 +191,7 @@ mod tests {
             },
             connected: true,
             buttons: HashMap::new(),
+            button_values: HashMap::new(),
             axes: HashMap::new(),
         }
     }
