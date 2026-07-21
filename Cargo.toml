@@ -1,3 +1,7 @@
+[workspace]
+members = [".", "crates/padprobe-gamepad-widget"]
+resolver = "3"
+
 [package]
 name = "padprobe"
 version = "0.1.0"
