@@ -109,9 +109,20 @@ fn handle_key(
         return;
     }
 
+    if app.device_selector_visible {
+        match key.code {
+            KeyCode::Up | KeyCode::Char('k') => app.select_previous(),
+            KeyCode::Down | KeyCode::Char('j') => app.select_next(),
+            KeyCode::Enter | KeyCode::Esc | KeyCode::Char('d') => app.close_device_selector(),
+            _ => {}
+        }
+        return;
+    }
+
     match key.code {
         KeyCode::Char('q') => app.should_quit = true,
         KeyCode::Char('?') => app.help_visible = true,
+        KeyCode::Char('d') => app.open_device_selector(),
         KeyCode::Esc => {
             if let Some(test) = rumble_test.take() {
                 let device_id = test.device_id();
