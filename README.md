@@ -13,6 +13,8 @@ dependency.
 - Controller connect and disconnect handling
 - Explicit multi-controller selection
 - Persistent pressed-button and normalized axis state
+- Abstract mapped-controller view with stick direction, trigger levels, mapped
+  buttons, and D-pad state
 - Session minimum, maximum, and change count for observed axes
 - A 256-entry event history with pausable auto-scrolling
 - Device name, backend ID, VID/PID, UUID, mapping source, power information,
@@ -43,7 +45,9 @@ just check
 | Key | Action |
 | --- | --- |
 | `q`, `Ctrl-C` | Quit |
-| `↑`/`↓`, `j`/`k` | Select a connected controller while the device pane is focused |
+| `d` | Open the controller selector |
+| `↑`/`↓`, `j`/`k` | Select a connected controller inside the selector |
+| `Enter`, `Esc` | Close the controller selector |
 | `Tab`, `Shift-Tab` | Change focused pane |
 | `p` | Pause or resume event auto-scrolling while the event pane is focused |
 | `r` | Run a short rumble test when supported |
@@ -51,7 +55,12 @@ just check
 | `?` | Open or close help |
 
 A disconnected selected controller remains selected so the disconnection is
-visible. Use the device navigation keys to select another connected controller.
+visible. Open the selector with `d` to choose another connected controller.
+
+The abstract gamepad uses lowercase labels and hollow D-pad symbols for idle
+controls, then uppercase labels and filled symbols for active controls. It is a
+mapped-input overview; the adjacent numerical table remains authoritative and
+continues to expose unknown controls.
 
 ## Debug logging
 
