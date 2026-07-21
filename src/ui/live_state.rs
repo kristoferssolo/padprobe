@@ -30,7 +30,7 @@ pub(super) fn render_live_state(frame: &mut Frame<'_>, app: &App, area: Rect) {
         .constraints([Constraint::Length(4), Constraint::Min(2)])
         .split(inner);
     render_metadata(frame, id, device, sections[0]);
-    if sections[1].width >= 72 && sections[1].height >= 13 {
+    if sections[1].width >= 89 && sections[1].height >= 13 {
         if sections[1].height >= 22 {
             let body = Layout::default()
                 .direction(Direction::Vertical)
