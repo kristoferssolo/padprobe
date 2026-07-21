@@ -1,6 +1,7 @@
 mod devices;
 mod events;
 mod footer;
+mod gamepad;
 mod layout;
 mod live_state;
 mod overlays;
