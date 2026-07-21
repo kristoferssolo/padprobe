@@ -8,6 +8,7 @@ use ratatui::{
 
 use crate::app::{App, AxisState, DeviceState, Focus};
 
+use super::gamepad::render_gamepad;
 use super::layout::{WARNING, focused_block};
 
 pub(super) fn render_live_state(frame: &mut Frame<'_>, app: &App, area: Rect) {
@@ -25,15 +26,29 @@ pub(super) fn render_live_state(frame: &mut Frame<'_>, app: &App, area: Rect) {
 
     let sections = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(4),
-            Constraint::Length(3),
-            Constraint::Min(2),
-        ])
+        .constraints([Constraint::Length(4), Constraint::Min(2)])
         .split(inner);
     render_metadata(frame, id, device, sections[0]);
-    render_buttons(frame, device, sections[1]);
-    render_axes(frame, device, sections[2]);
+    if sections[1].width >= 88 && sections[1].height >= 9 {
+        let body = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(48), Constraint::Percentage(52)])
+            .split(sections[1]);
+        let measurements = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(3), Constraint::Min(2)])
+            .split(body[0]);
+        render_buttons(frame, device, measurements[0]);
+        render_axes(frame, device, measurements[1]);
+        render_gamepad(frame, body[1]);
+    } else {
+        let measurements = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(3), Constraint::Min(2)])
+            .split(sections[1]);
+        render_buttons(frame, device, measurements[0]);
+        render_axes(frame, device, measurements[1]);
+    }
 }
 
 fn render_metadata(frame: &mut Frame<'_>, id: usize, device: &DeviceState, area: Rect) {
