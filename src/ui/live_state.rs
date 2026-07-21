@@ -1,3 +1,4 @@
+use gilrs::{Axis, Button};
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Rect},
@@ -87,6 +88,10 @@ fn render_metadata(frame: &mut Frame<'_>, id: usize, device: &DeviceState, area:
             "power: {}  uuid: {}",
             device.metadata.power, device.metadata.uuid
         )),
+        Line::from(
+            "abstract view: lowercase/hollow idle, uppercase/filled active; values remain authoritative",
+        )
+        .style(Style::default().fg(Color::DarkGray)),
     ];
     frame.render_widget(Paragraph::new(lines), area);
 }
@@ -105,10 +110,22 @@ fn render_buttons(frame: &mut Frame<'_>, device: &DeviceState, area: Rect) {
         format!("Pressed: {}", pressed.join(", "))
     };
     let observed = device.buttons.len();
+    let mut fallback = Vec::new();
+    if device.buttons.contains_key(&Button::Unknown) {
+        fallback.push("unknown button");
+    }
+    if device.axes.contains_key(&Axis::Unknown) {
+        fallback.push("unknown axis");
+    }
+    let fallback = if fallback.is_empty() {
+        String::new()
+    } else {
+        format!(" | observed: {}", fallback.join(", "))
+    };
     frame.render_widget(
         Paragraph::new(vec![
             Line::from(text),
-            Line::from(format!("Observed buttons: {observed}")),
+            Line::from(format!("Observed buttons: {observed}{fallback}")),
         ]),
         area,
     );
