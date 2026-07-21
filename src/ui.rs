@@ -1,5 +1,4 @@
-use std::cmp;
-
+use crate::app::{App, AxisState, DeviceState, Focus};
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Rect},
@@ -7,8 +6,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Row, Table, Wrap},
 };
-
-use crate::app::{App, AxisState, DeviceState, Focus};
+use std::cmp;
 
 const ACTIVE_BORDER: Color = Color::Cyan;
 const WARNING: Color = Color::Yellow;
@@ -263,9 +261,12 @@ fn render_events(frame: &mut Frame<'_>, app: &App, area: Rect) {
     let lines = entries.into_iter().skip(skip).map(|entry| {
         let seconds = entry.elapsed.as_secs();
         let millis = entry.elapsed.subsec_millis();
+        let source = entry
+            .device_id
+            .map_or_else(|| "app".to_owned(), |id| format!("gilrs:{id}"));
         Line::from(format!(
-            "{seconds:>5}.{millis:03}  gilrs:{}  {}",
-            entry.device_id, entry.description
+            "{seconds:>5}.{millis:03}  {source}  {}",
+            entry.description
         ))
     });
     frame.render_widget(
@@ -277,9 +278,9 @@ fn render_events(frame: &mut Frame<'_>, app: &App, area: Rect) {
 
 fn render_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
     let controls = if app.focus == Focus::Events {
-        "q quit | tab focus | p pause events | ? help"
+        "q quit | r rumble | tab focus | p pause events | ? help"
     } else {
-        "q quit | ↑↓/jk select | tab focus | ? help"
+        "q quit | r rumble | ↑↓/jk select | tab focus | ? help"
     };
     let width = area.width as usize;
     let status_room = width.saturating_sub(controls.len() + 3);
@@ -303,8 +304,10 @@ fn render_help(frame: &mut Frame<'_>, area: Rect) {
         Line::from("  q / Ctrl-C       Quit"),
         Line::from("  Tab / Shift-Tab  Change focused pane"),
         Line::from("  ↑ ↓ / j k        Select a connected controller"),
+        Line::from("  r                 Run a 300 ms rumble test"),
         Line::from("  p                 Pause event auto-scrolling"),
-        Line::from("  ? / Esc           Close this help"),
+        Line::from("  Esc               Cancel rumble / close help"),
+        Line::from("  ?                 Close this help"),
         Line::from(""),
         Line::from("Disconnected selections are retained until you choose another device."),
     ])

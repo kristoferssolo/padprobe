@@ -1,9 +1,8 @@
+use gilrs::{Axis, Button, EventType, Gamepad, MappingSource};
 use std::{
     collections::{HashMap, VecDeque},
     time::{Duration, Instant},
 };
-
-use gilrs::{Axis, Button, EventType, Gamepad, MappingSource};
 
 pub const EVENT_CAPACITY: usize = 256;
 
@@ -115,7 +114,7 @@ impl DeviceState {
 pub struct EventEntry {
     pub sequence: u64,
     pub elapsed: Duration,
-    pub device_id: usize,
+    pub device_id: Option<usize>,
     pub description: String,
 }
 
@@ -175,7 +174,7 @@ impl App {
         }
 
         self.status = format!("{name} connected");
-        self.push_event(id, "Connected".to_owned());
+        self.push_event(Some(id), "Connected".to_owned());
     }
 
     pub fn disconnect(&mut self, id: usize) {
@@ -194,7 +193,7 @@ impl App {
         } else {
             format!("{name} disconnected")
         };
-        self.push_event(id, "Disconnected".to_owned());
+        self.push_event(Some(id), "Disconnected".to_owned());
     }
 
     pub fn apply_controller_event(&mut self, id: usize, event: &EventType) {
@@ -222,7 +221,7 @@ impl App {
             _ => {}
         }
 
-        self.push_event(id, format_event(event));
+        self.push_event(Some(id), format_event(event));
     }
 
     pub fn select_next(&mut self) {
@@ -238,6 +237,16 @@ impl App {
             .event_scroll_anchor
             .is_none()
             .then(|| self.events.back().map_or(0, |entry| entry.sequence));
+    }
+
+    pub fn record_notice(&mut self, description: impl Into<String>) {
+        self.record_notice_for(self.selected_id, description);
+    }
+
+    pub fn record_notice_for(&mut self, device_id: Option<usize>, description: impl Into<String>) {
+        let description = description.into();
+        self.status.clone_from(&description);
+        self.push_event(device_id, description);
     }
 
     #[must_use]
@@ -273,7 +282,7 @@ impl App {
         self.status = format!("Selected {}", self.devices[&connected[next]].metadata.name);
     }
 
-    fn push_event(&mut self, device_id: usize, description: String) {
+    fn push_event(&mut self, device_id: Option<usize>, description: String) {
         if self.events.len() == EVENT_CAPACITY {
             self.events.pop_front();
         }
@@ -377,7 +386,7 @@ mod tests {
         app.connect(1, metadata("controller"));
 
         for index in 0..EVENT_CAPACITY {
-            app.push_event(1, format!("event {index}"));
+            app.push_event(Some(1), format!("event {index}"));
         }
 
         assert_eq!(app.events.len(), EVENT_CAPACITY);
@@ -391,7 +400,7 @@ mod tests {
 
         app.toggle_event_scroll();
         let anchor = app.event_scroll_anchor;
-        app.push_event(1, "later event".to_owned());
+        app.push_event(Some(1), "later event".to_owned());
 
         assert!(anchor.is_some());
         assert_eq!(app.event_scroll_anchor, anchor);
