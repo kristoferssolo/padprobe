@@ -169,3 +169,79 @@ fn pressed(device: &DeviceState, button: Button) -> bool {
 fn axis_value(device: &DeviceState, axis: Axis) -> f32 {
     device.axes.get(&axis).map_or(0.0, |state| state.current)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use crate::app::{AxisState, DeviceMetadata};
+
+    use super::*;
+
+    fn device() -> DeviceState {
+        DeviceState {
+            metadata: DeviceMetadata {
+                name: "fixture".to_owned(),
+                vendor_id: None,
+                product_id: None,
+                uuid: String::new(),
+                mapping: "fixture".to_owned(),
+                power: "unknown".to_owned(),
+                rumble_supported: false,
+            },
+            connected: true,
+            buttons: HashMap::new(),
+            axes: HashMap::new(),
+        }
+    }
+
+    #[test]
+    fn dpad_axes_are_adapted_as_buttons() {
+        let mut device = device();
+        device.axes.insert(
+            Axis::DPadY,
+            AxisState {
+                current: 1.0,
+                minimum: 0.0,
+                maximum: 1.0,
+                changes: 1,
+            },
+        );
+
+        let state = gamepad_state(&device);
+
+        assert_eq!(
+            state.clusters()[1].controls()[0].value(),
+            ControlValue::Button { pressed: true }
+        );
+    }
+
+    #[test]
+    fn observed_unknown_controls_create_extra_cluster() {
+        let mut device = device();
+        device.buttons.insert(Button::Unknown, true);
+        device.axes.insert(
+            Axis::Unknown,
+            AxisState {
+                current: 0.4,
+                minimum: 0.4,
+                maximum: 0.4,
+                changes: 1,
+            },
+        );
+
+        let state = gamepad_state(&device);
+
+        assert_eq!(
+            state.clusters().last().map(ControlCluster::title),
+            Some("Extra / unmapped")
+        );
+        assert_eq!(
+            state
+                .clusters()
+                .last()
+                .map(|cluster| cluster.controls().len()),
+            Some(2)
+        );
+    }
+}
