@@ -119,7 +119,7 @@ fn stick_direction(x: f32, y: f32) -> char {
         (x, _) if x > THRESHOLD => '→',
         (_, y) if y > THRESHOLD => '↑',
         (_, y) if y < -THRESHOLD => '↓',
-        _ => '●',
+        _ => '·',
     }
 }
 
@@ -183,5 +183,11 @@ mod tests {
         assert_eq!(trigger_bar(None), "[·····] n/a");
         assert_eq!(trigger_bar(Some(-1.0)), "[░░░░░] 0.00");
         assert_eq!(trigger_bar(Some(1.5)), "[█████] 1.00");
+    }
+
+    #[test]
+    fn centered_stick_uses_idle_marker() {
+        assert_eq!(stick_direction(0.0, 0.0), '·');
+        assert_eq!(stick_direction(0.8, 0.8), '↗');
     }
 }
