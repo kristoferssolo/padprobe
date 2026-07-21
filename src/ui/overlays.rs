@@ -9,13 +9,14 @@ use ratatui::{
 use super::layout::{ACTIVE_BORDER, centered_rect};
 
 pub(super) fn render_help(frame: &mut Frame<'_>, area: Rect) {
-    let popup = centered_rect(58, 13, area);
+    let popup = centered_rect(58, 14, area);
     frame.render_widget(Clear, popup);
     let help = Paragraph::new(vec![
         Line::from("Keyboard controls"),
         Line::from(""),
         Line::from("  q / Ctrl-C       Quit"),
         Line::from("  Tab / Shift-Tab  Change focused pane"),
+        Line::from("  d                 Open controller selector"),
         Line::from("  ↑ ↓ / j k        Select a connected controller"),
         Line::from("  r                 Run a 300 ms rumble test"),
         Line::from("  p                 Pause event auto-scrolling"),
