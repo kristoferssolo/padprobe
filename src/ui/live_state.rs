@@ -30,18 +30,22 @@ pub(super) fn render_live_state(frame: &mut Frame<'_>, app: &App, area: Rect) {
         .constraints([Constraint::Length(4), Constraint::Min(2)])
         .split(inner);
     render_metadata(frame, id, device, sections[0]);
-    if sections[1].width >= 88 && sections[1].height >= 9 {
-        let body = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(48), Constraint::Percentage(52)])
-            .split(sections[1]);
-        let measurements = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(3), Constraint::Min(2)])
-            .split(body[0]);
-        render_buttons(frame, device, measurements[0]);
-        render_axes(frame, device, measurements[1]);
-        render_gamepad(frame, device, body[1]);
+    if sections[1].width >= 72 && sections[1].height >= 13 {
+        if sections[1].height >= 22 {
+            let body = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Length(13), Constraint::Min(8)])
+                .split(sections[1]);
+            render_gamepad(frame, device, body[0]);
+            let measurements = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Length(3), Constraint::Min(2)])
+                .split(body[1]);
+            render_buttons(frame, device, measurements[0]);
+            render_axes(frame, device, measurements[1]);
+        } else {
+            render_gamepad(frame, device, sections[1]);
+        }
     } else {
         let measurements = Layout::default()
             .direction(Direction::Vertical)
