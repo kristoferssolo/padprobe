@@ -100,47 +100,46 @@ impl ControllerState {
 
         writeln!(output, "PadProbe").unwrap();
 
-        let Some(name) = &self.name else {
+        if let (Some(id), Some(name)) = (self.id, &self.name) {
+            writeln!(output, "\nController: {name} ({id:?})").unwrap();
+            writeln!(output, "\nPressed buttons:").unwrap();
+
+            if self.pressed_buttons.is_empty() {
+                writeln!(output, "    None").unwrap();
+            } else {
+                let mut buttons = self
+                    .pressed_buttons
+                    .iter()
+                    .map(|button| format!("{button:?}"))
+                    .collect::<Vec<_>>();
+
+                buttons.sort();
+
+                for button in buttons {
+                    writeln!(output, "    {button}").unwrap();
+                }
+            }
+
+            writeln!(output, "\nObserved axes:").unwrap();
+
+            if self.axes.is_empty() {
+                writeln!(output, "    Move a stick or trigger to populate this list.").unwrap();
+            } else {
+                let mut axes = self
+                    .axes
+                    .iter()
+                    .map(|(axis, value)| (format!("{axis:?}"), *value))
+                    .collect::<Vec<_>>();
+
+                axes.sort_by(|left, right| left.0.cmp(&right.0));
+
+                for (axis, value) in axes {
+                    writeln!(output, "    {axis:<16} {value:+.3}").unwrap();
+                }
+            }
+        } else {
             writeln!(output, "\nNo controller selected.").unwrap();
-            writeln!(output, "Connected a controller to begin.").unwrap();
-            return output;
-        };
-
-        writeln!(output, "\nController: {name}").unwrap();
-        writeln!(output, "\nPressed buttons:").unwrap();
-
-        if self.pressed_buttons.is_empty() {
-            writeln!(output, "    None").unwrap();
-        } else {
-            let mut buttons = self
-                .pressed_buttons
-                .iter()
-                .map(|button| format!("{button:?}"))
-                .collect::<Vec<_>>();
-
-            buttons.sort();
-
-            for button in buttons {
-                writeln!(output, "    {button}").unwrap();
-            }
-        }
-
-        writeln!(output, "\nObserved axes:").unwrap();
-
-        if self.axes.is_empty() {
-            writeln!(output, "    Move a stick or trigger to populate this list.").unwrap();
-        } else {
-            let mut axes = self
-                .axes
-                .iter()
-                .map(|(axis, value)| (format!("{axis:?}"), *value))
-                .collect::<Vec<_>>();
-
-            axes.sort_by(|left, right| left.0.cmp(&right.0));
-
-            for (axis, value) in axes {
-                writeln!(output, "    {axis:<16} {value:+.3}").unwrap();
-            }
+            writeln!(output, "Connect a controller to begin.").unwrap();
         }
 
         writeln!(output, "\nLast event:").unwrap();
