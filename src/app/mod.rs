@@ -13,7 +13,6 @@ pub const EVENT_CAPACITY: usize = 256;
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Focus {
     #[default]
-    Devices,
     LiveState,
     Events,
 }
@@ -22,17 +21,15 @@ impl Focus {
     #[must_use]
     pub const fn next(self) -> Self {
         match self {
-            Self::Devices => Self::LiveState,
             Self::LiveState => Self::Events,
-            Self::Events => Self::Devices,
+            Self::Events => Self::LiveState,
         }
     }
 
     #[must_use]
     pub const fn previous(self) -> Self {
         match self {
-            Self::Devices => Self::Events,
-            Self::LiveState => Self::Devices,
+            Self::LiveState => Self::Events,
             Self::Events => Self::LiveState,
         }
     }
