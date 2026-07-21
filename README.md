@@ -13,8 +13,8 @@ dependency.
 - Controller connect and disconnect handling
 - Explicit multi-controller selection
 - Persistent pressed-button and normalized axis state
-- Abstract mapped-controller view with stick direction, trigger levels, mapped
-  buttons, and D-pad state
+- Responsive control-cluster view with stick coordinates, trigger bars, mapped
+  buttons, D-pad state, and observed extra controls
 - Session minimum, maximum, and change count for observed axes
 - A 256-entry event history with pausable auto-scrolling
 - Device name, backend ID, VID/PID, UUID, mapping source, power information,
@@ -57,10 +57,35 @@ just check
 A disconnected selected controller remains selected so the disconnection is
 visible. Open the selector with `d` to choose another connected controller.
 
-The abstract gamepad uses lowercase labels and hollow D-pad symbols for idle
-controls, then uppercase labels and filled symbols for active controls. It is a
-mapped-input overview; the adjacent numerical table remains authoritative and
-continues to expose unknown controls.
+The gamepad view groups related controls into separate boxes. Hollow circles
+indicate idle buttons, filled circles indicate pressed buttons, and active
+values are highlighted. On smaller terminals PadProbe falls back to the
+numerical state table.
+
+## Reusable gamepad widget
+
+The cluster renderer is a public, backend-neutral Ratatui widget under
+`padprobe::widgets::gamepad`. Its model does not depend on `gilrs` or PadProbe
+application state:
+
+```rust
+use padprobe::widgets::gamepad::{
+    Control, ControlCluster, ControlValue, GamepadState, GamepadWidget,
+};
+
+let state = GamepadState::new([
+    ControlCluster::new("Face buttons").with_control(Control::new(
+        "South",
+        ControlValue::Button { pressed: true },
+    )),
+]);
+
+frame.render_widget(GamepadWidget::new(&state), area);
+```
+
+The `gilrs` conversion remains in PadProbe's UI adapter. This boundary allows
+the model and widget modules to be moved into an independent crate without
+pulling in the PadProbe backend or diagnostic state.
 
 ## Debug logging
 
