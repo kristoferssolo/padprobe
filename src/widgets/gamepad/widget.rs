@@ -125,8 +125,8 @@ fn stick_direction(x: f32, y: f32) -> char {
 
 fn grid_areas(area: Rect, item_count: usize) -> Vec<Rect> {
     let columns = match area.width {
-        72.. => item_count.min(3),
-        40.. => item_count.min(2),
+        89.. => item_count.min(3),
+        59.. => item_count.min(2),
         _ => 1,
     };
     let rows = item_count.div_ceil(columns);
@@ -170,7 +170,7 @@ mod tests {
     #[test]
     fn grid_adapts_column_count_to_width() {
         let narrow = grid_areas(Rect::new(0, 0, 30, 30), 6);
-        let medium = grid_areas(Rect::new(0, 0, 50, 15), 6);
+        let medium = grid_areas(Rect::new(0, 0, 60, 15), 6);
         let wide = grid_areas(Rect::new(0, 0, 90, 10), 6);
 
         assert_eq!(narrow[1].x, narrow[0].x);
