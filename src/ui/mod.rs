@@ -1,3 +1,5 @@
+mod layout;
+
 use crate::app::{App, AxisState, DeviceState, Focus};
 use ratatui::{
     Frame,
@@ -8,8 +10,7 @@ use ratatui::{
 };
 use std::cmp;
 
-const ACTIVE_BORDER: Color = Color::Cyan;
-const WARNING: Color = Color::Yellow;
+use self::layout::{ACTIVE_BORDER, WARNING, centered_rect, focused_block};
 
 pub fn render(frame: &mut Frame<'_>, app: &App) {
     let area = frame.area();
@@ -319,27 +320,4 @@ fn render_help(frame: &mut Frame<'_>, area: Rect) {
     )
     .wrap(Wrap { trim: true });
     frame.render_widget(help, popup);
-}
-
-fn focused_block<'a>(title: &'a str, focused: bool) -> Block<'a> {
-    let style = if focused {
-        Style::default().fg(ACTIVE_BORDER)
-    } else {
-        Style::default()
-    };
-    Block::default()
-        .borders(Borders::ALL)
-        .title(title)
-        .border_style(style)
-}
-
-fn centered_rect(width: u16, height: u16, area: Rect) -> Rect {
-    let width = width.min(area.width.saturating_sub(2));
-    let height = height.min(area.height.saturating_sub(2));
-    Rect {
-        x: area.x + area.width.saturating_sub(width) / 2,
-        y: area.y + area.height.saturating_sub(height) / 2,
-        width,
-        height,
-    }
 }
