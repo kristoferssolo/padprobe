@@ -1,9 +1,11 @@
+mod devices;
 mod events;
 mod footer;
 mod layout;
 mod overlays;
 
 use self::{
+    devices::render_devices,
     events::render_events,
     footer::render_footer,
     layout::{WARNING, focused_block},
@@ -15,7 +17,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Paragraph, Row, Table, Wrap},
+    widgets::{Block, Borders, Paragraph, Row, Table, Wrap},
 };
 use std::cmp;
 
@@ -77,43 +79,6 @@ fn render_compact(frame: &mut Frame<'_>, app: &App, area: Rect) {
         chunks[0],
     );
     render_footer(frame, app, chunks[1]);
-}
-
-fn render_devices(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    let items = app.device_order.iter().filter_map(|id| {
-        let device = app.devices.get(id)?;
-        let selected = app.selected_id == Some(*id);
-        let marker = if selected { ">" } else { " " };
-        let state = if device.connected {
-            "connected"
-        } else {
-            "disconnected"
-        };
-        let style = if !device.connected {
-            Style::default().fg(WARNING)
-        } else if selected {
-            Style::default()
-                .fg(Color::Black)
-                .bg(Color::Cyan)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default()
-        };
-        Some(ListItem::new(format!("{marker} {} [{state}]", device.metadata.name)).style(style))
-    });
-    let block = focused_block(" Devices ", app.focus == Focus::Devices);
-    if app.devices.is_empty() {
-        frame.render_widget(
-            Paragraph::new(
-                "No controllers detected.\n\nConnect a controller, then wait for PadProbe to detect it.",
-            )
-            .block(block)
-            .wrap(Wrap { trim: true }),
-            area,
-        );
-    } else {
-        frame.render_widget(List::new(items).block(block), area);
-    }
 }
 
 fn render_live_state(frame: &mut Frame<'_>, app: &App, area: Rect) {
