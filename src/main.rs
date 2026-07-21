@@ -3,23 +3,32 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use gilrs::{EventType, Gilrs};
 use padprobe::{
     app::{App, DeviceMetadata, Focus},
+    logging,
     rumble::RumbleTest,
     terminal::{self, TerminalSession},
     ui,
 };
 use std::time::{Duration, Instant};
+use tracing::{debug, info, warn};
 
 const FRAME_INTERVAL: Duration = Duration::from_millis(33);
 
 fn main() -> Result<()> {
     color_eyre::install()?;
+    let log_path = logging::init()?;
     terminal::install_panic_hook();
 
     let mut gilrs = Gilrs::new().map_err(|error| eyre!("failed to initialize gilrs: {error}"))?;
     let mut app = App::new();
+    debug!(?log_path, "gilrs backend initialized");
 
     for (id, gamepad) in gilrs.gamepads() {
         if gamepad.is_connected() {
+            info!(
+                gamepad_id = usize::from(id),
+                name = gamepad.name(),
+                "controller detected"
+            );
             app.connect(usize::from(id), DeviceMetadata::from_gamepad(&gamepad));
         }
     }
@@ -33,9 +42,15 @@ fn main() -> Result<()> {
             let id = usize::from(event.id);
             match event.event {
                 EventType::Connected => {
+                    info!(
+                        gamepad_id = id,
+                        name = gilrs.gamepad(event.id).name(),
+                        "controller connected"
+                    );
                     app.connect(id, DeviceMetadata::from_gamepad(&gilrs.gamepad(event.id)));
                 }
                 EventType::Disconnected => {
+                    info!(gamepad_id = id, "controller disconnected");
                     if rumble_test
                         .as_ref()
                         .is_some_and(|test: &RumbleTest| test.device_id() == id)
@@ -118,7 +133,10 @@ fn handle_key(
                     app.record_notice("Running short rumble test — Esc cancels");
                     *rumble_test = Some(test);
                 }
-                Err(error) => app.record_notice(error.to_string()),
+                Err(error) => {
+                    warn!(%error, "rumble test unavailable");
+                    app.record_notice(error.to_string());
+                }
             }
         }
         KeyCode::Up | KeyCode::Char('k') if app.focus == Focus::Devices => {
