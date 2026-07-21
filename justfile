@@ -1,15 +1,20 @@
 export RUSTC_WRAPPER := "sccache"
 set shell := ["bash", "-cu"]
 
+alias b := build
+alias c := check
+alias d := docs
+alias f := fmt
+alias i := install
+alias t := test
+
 # Default recipe
 default:
     @just --list
 
-alias c := check
 # Run all checks (fmt, clippy, docs, test)
 check: fmt clippy docs test
 
-alias f := fmt
 # Format code
 fmt:
     cargo fmt --all
@@ -22,18 +27,15 @@ fmt-check:
 clippy:
     cargo clippy --all-targets --all-features -- -D warnings
 
-alias d := docs
 # Build documentation
 docs:
     RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features
 
-alias t := test
 # Run tests with nextest (skip if no tests exist)
 test:
     cargo nextest run --all-features --no-tests auto || true
     cargo test --lib --bins
 
-alias b := build
 # Build release binaries
 build:
     cargo build --release
@@ -45,3 +47,6 @@ clean:
 # Install dev dependencies
 setup:
     cargo install cargo-nextest
+
+install:
+    cargo install --path .
