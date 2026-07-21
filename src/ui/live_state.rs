@@ -40,7 +40,7 @@ pub(super) fn render_live_state(frame: &mut Frame<'_>, app: &App, area: Rect) {
             .split(body[0]);
         render_buttons(frame, device, measurements[0]);
         render_axes(frame, device, measurements[1]);
-        render_gamepad(frame, body[1]);
+        render_gamepad(frame, device, body[1]);
     } else {
         let measurements = Layout::default()
             .direction(Direction::Vertical)
