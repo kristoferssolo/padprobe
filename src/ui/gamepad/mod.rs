@@ -1,3 +1,8 @@
+#[expect(
+    dead_code,
+    reason = "adapter is integrated in the following atomic change"
+)]
+mod adapter;
 mod state;
 
 use gilrs::{Axis, Button};
