@@ -109,15 +109,16 @@ fn stick_control(
 
 fn trigger_control(label: &str, device: &DeviceState, axis: Axis, button: Button) -> Control {
     let value = device
-        .axes
-        .get(&axis)
-        .map(|state| (state.current + 1.0) / 2.0)
+        .button_values
+        .get(&button)
+        .copied()
         .or_else(|| {
             device
-                .buttons
-                .contains_key(&button)
-                .then(|| f32::from(pressed(device, button)))
-        });
+                .axes
+                .get(&axis)
+                .map(|state| (state.current + 1.0) / 2.0)
+        })
+        .or_else(|| device.buttons.get(&button).copied().map(f32::from));
     Control::new(label, ControlValue::Trigger { value })
 }
 
@@ -243,6 +244,19 @@ mod tests {
                 .last()
                 .map(|cluster| cluster.controls().len()),
             Some(2)
+        );
+    }
+
+    #[test]
+    fn trigger_uses_analog_button_value() {
+        let mut device = device();
+        device.button_values.insert(Button::LeftTrigger2, 0.37);
+
+        let state = gamepad_state(&device);
+
+        assert_eq!(
+            state.clusters()[0].controls()[3].value(),
+            ControlValue::Trigger { value: Some(0.37) }
         );
     }
 }
