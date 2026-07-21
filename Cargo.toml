@@ -1,0 +1,13 @@
+[package]
+name = "padprobe"
+version = "0.1.0"
+edition = "2024"
+authors = ["Kristofers Solo <dev@kristofers.xyz>"]
+license = "MIT OR Apache-2.0"
+description = "PadProbe is a terminal-based game-controller diagnostic tool for testing buttons, analog ranges, stick drift, event timing, mappings, and rumble."
+repository = "https://github.com/kristoferssolo/padprobe"
+homepage = "https://github.com/kristoferssolo/padprobe"
+keywords = ["gamepad", "controller", "hid"]
+categories = ["hardware-support", "command-line-utilities"]
+
+[dependencies]
