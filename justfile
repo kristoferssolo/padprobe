@@ -6,6 +6,7 @@ alias c := check
 alias d := docs
 alias f := fmt
 alias i := install
+alias r := run
 alias t := test
 
 # Default recipe
@@ -35,6 +36,10 @@ docs:
 test:
     cargo nextest run --all-features --no-tests auto || true
     cargo test --lib --bins
+
+# Run the app
+run:
+    cargo run
 
 # Build release binaries
 build:
