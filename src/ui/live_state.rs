@@ -93,7 +93,7 @@ fn render_metadata(frame: &mut Frame<'_>, id: usize, device: &DeviceState, area:
             device.metadata.power, device.metadata.uuid
         )),
         Line::from(
-            "abstract view: lowercase/hollow idle, uppercase/filled active; values remain authoritative",
+            "cluster view: ○ idle, ● active; values are normalized mapped input reported by gilrs",
         )
         .style(Style::default().fg(Color::DarkGray)),
     ];
