@@ -6,8 +6,11 @@ mod live_state;
 mod overlays;
 
 use self::{
-    devices::render_devices, events::render_events, footer::render_footer,
-    live_state::render_live_state, overlays::render_help,
+    devices::{render_device_selector, render_devices},
+    events::render_events,
+    footer::render_footer,
+    live_state::render_live_state,
+    overlays::render_help,
 };
 use crate::app::App;
 use ratatui::{
@@ -27,6 +30,8 @@ pub fn render(frame: &mut Frame<'_>, app: &App) {
 
     if app.help_visible {
         render_help(frame, area);
+    } else if app.device_selector_visible {
+        render_device_selector(frame, app, area);
     }
 }
 

@@ -2,14 +2,48 @@ use ratatui::{
     Frame,
     layout::Rect,
     style::{Color, Modifier, Style},
-    widgets::{List, ListItem, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
 };
 
 use crate::app::{App, Focus};
 
-use super::layout::{WARNING, focused_block};
+use super::layout::{ACTIVE_BORDER, WARNING, centered_rect, focused_block};
 
 pub(super) fn render_devices(frame: &mut Frame<'_>, app: &App, area: Rect) {
+    let block = focused_block(" Devices ", app.focus == Focus::Devices);
+    if app.devices.is_empty() {
+        frame.render_widget(
+            Paragraph::new(
+                "No controllers detected.\n\nConnect a controller, then wait for PadProbe to detect it.",
+            )
+            .block(block)
+            .wrap(Wrap { trim: true }),
+            area,
+        );
+    } else {
+        frame.render_widget(List::new(device_items(app)).block(block), area);
+    }
+}
+
+pub(super) fn render_device_selector(frame: &mut Frame<'_>, app: &App, area: Rect) {
+    let height = (app.device_order.len() as u16 + 2).clamp(5, 14);
+    let popup = centered_rect(62, height, area);
+    frame.render_widget(Clear, popup);
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(" Select controller — ↑↓/jk move, Enter/Esc close ")
+        .border_style(Style::default().fg(ACTIVE_BORDER));
+    if app.devices.is_empty() {
+        frame.render_widget(
+            Paragraph::new("No controllers detected.").block(block),
+            popup,
+        );
+    } else {
+        frame.render_widget(List::new(device_items(app)).block(block), popup);
+    }
+}
+
+fn device_items(app: &App) -> Vec<ListItem<'static>> {
     let items = app.device_order.iter().filter_map(|id| {
         let device = app.devices.get(id)?;
         let selected = app.selected_id == Some(*id);
@@ -31,17 +65,5 @@ pub(super) fn render_devices(frame: &mut Frame<'_>, app: &App, area: Rect) {
         };
         Some(ListItem::new(format!("{marker} {} [{state}]", device.metadata.name)).style(style))
     });
-    let block = focused_block(" Devices ", app.focus == Focus::Devices);
-    if app.devices.is_empty() {
-        frame.render_widget(
-            Paragraph::new(
-                "No controllers detected.\n\nConnect a controller, then wait for PadProbe to detect it.",
-            )
-            .block(block)
-            .wrap(Wrap { trim: true }),
-            area,
-        );
-    } else {
-        frame.render_widget(List::new(items).block(block), area);
-    }
+    items.collect()
 }
