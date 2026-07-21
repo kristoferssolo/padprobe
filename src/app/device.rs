@@ -64,6 +64,7 @@ pub struct DeviceState {
     pub metadata: DeviceMetadata,
     pub connected: bool,
     pub buttons: HashMap<Button, bool>,
+    pub button_values: HashMap<Button, f32>,
     pub axes: HashMap<Axis, AxisState>,
 }
 
@@ -73,6 +74,7 @@ impl DeviceState {
             metadata,
             connected: true,
             buttons: HashMap::new(),
+            button_values: HashMap::new(),
             axes: HashMap::new(),
         }
     }

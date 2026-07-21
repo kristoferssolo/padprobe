@@ -58,6 +58,22 @@ fn axis_updates_preserve_observed_range() {
 }
 
 #[test]
+fn analog_button_values_are_preserved() {
+    let mut app = App::new();
+    app.connect(1, metadata("controller"));
+    let Some(device) = app.devices.get_mut(&1) else {
+        panic!("fixture device should exist");
+    };
+
+    apply_button_value(device, gilrs::Button::LeftTrigger2, 0.37);
+
+    assert_eq!(
+        app.devices[&1].button_values[&gilrs::Button::LeftTrigger2],
+        0.37
+    );
+}
+
+#[test]
 fn event_history_evicts_oldest_entry() {
     let mut app = App::new();
     app.connect(1, metadata("controller"));

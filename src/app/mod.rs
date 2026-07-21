@@ -92,6 +92,7 @@ impl App {
             device.metadata = metadata;
             device.connected = true;
             device.buttons.clear();
+            device.button_values.clear();
             device.axes.clear();
         } else {
             self.devices.insert(id, DeviceState::new(metadata));
@@ -132,13 +133,13 @@ impl App {
 
         match event {
             EventType::ButtonPressed(button, _) => {
-                device.buttons.insert(*button, true);
+                apply_button_value(device, *button, 1.0);
             }
             EventType::ButtonReleased(button, _) => {
-                device.buttons.insert(*button, false);
+                apply_button_value(device, *button, 0.0);
             }
             EventType::ButtonChanged(button, value, _) => {
-                device.buttons.insert(*button, *value > 0.5);
+                apply_button_value(device, *button, *value);
             }
             EventType::AxisChanged(axis, value, _) => {
                 device
@@ -231,6 +232,11 @@ impl App {
         });
         self.next_event_sequence += 1;
     }
+}
+
+fn apply_button_value(device: &mut DeviceState, button: gilrs::Button, value: f32) {
+    device.buttons.insert(button, value > 0.5);
+    device.button_values.insert(button, value);
 }
 
 fn format_event(event: &EventType) -> String {
