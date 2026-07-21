@@ -83,6 +83,7 @@ fn control_line(control: &Control, idle_style: Style, active_style: Style) -> Li
         ControlValue::Trigger { value } => {
             (trigger_bar(value), value.is_some_and(|value| value > 0.1))
         }
+        ControlValue::Axis { value } => (format!("{value:+.3}"), value.abs() > 0.15),
     };
     Line::styled(
         format!("{:<8} {value}", control.label()),

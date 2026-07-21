@@ -78,6 +78,7 @@ pub enum ControlValue {
     Button { pressed: bool },
     Stick { x: f32, y: f32, pressed: bool },
     Trigger { value: Option<f32> },
+    Axis { value: f32 },
 }
 
 #[cfg(test)]
