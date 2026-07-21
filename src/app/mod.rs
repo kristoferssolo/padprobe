@@ -55,6 +55,7 @@ pub struct App {
     pub events: VecDeque<EventEntry>,
     pub focus: Focus,
     pub event_scroll_anchor: Option<u64>,
+    pub device_selector_visible: bool,
     pub help_visible: bool,
     pub should_quit: bool,
     pub status: String,
@@ -78,6 +79,7 @@ impl App {
             events: VecDeque::with_capacity(EVENT_CAPACITY),
             focus: Focus::default(),
             event_scroll_anchor: None,
+            device_selector_visible: false,
             help_visible: false,
             should_quit: false,
             status: "gilrs backend ready".to_owned(),
@@ -158,6 +160,14 @@ impl App {
 
     pub fn select_previous(&mut self) {
         self.move_selection(-1);
+    }
+
+    pub fn open_device_selector(&mut self) {
+        self.device_selector_visible = true;
+    }
+
+    pub fn close_device_selector(&mut self) {
+        self.device_selector_visible = false;
     }
 
     pub fn toggle_event_scroll(&mut self) {
@@ -326,5 +336,16 @@ mod tests {
         assert!(anchor.is_some());
         assert_eq!(app.event_scroll_anchor, anchor);
         assert!(app.events.back().unwrap().sequence > anchor.unwrap());
+    }
+
+    #[test]
+    fn device_selector_visibility_is_explicit() {
+        let mut app = App::new();
+
+        app.open_device_selector();
+        assert!(app.device_selector_visible);
+
+        app.close_device_selector();
+        assert!(!app.device_selector_visible);
     }
 }
