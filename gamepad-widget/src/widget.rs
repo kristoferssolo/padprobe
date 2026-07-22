@@ -3,8 +3,12 @@ use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Rect},
     style::{Color, Modifier, Style},
+    symbols::Marker,
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Widget},
+    widgets::{
+        Block, Borders, Paragraph, Widget,
+        canvas::{Canvas, Circle},
+    },
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -277,19 +281,32 @@ fn render_art_stick(
     } else {
         widget.idle_style
     };
-    let area = Rect::new(center.saturating_sub(7), y, 14, 5);
-    Paragraph::new(vec![
-        Line::styled("╭─────╮", widget.border_style).alignment(Alignment::Center),
-        Line::styled(format!("│  {}  │", stick_direction(x, axis_y)), style)
-            .alignment(Alignment::Center),
-        Line::styled("╰─────╯", widget.border_style).alignment(Alignment::Center),
+    let circle = Rect::new(center.saturating_sub(4), y, 8, 4);
+    let gate_color = widget.border_style.fg.unwrap_or(Color::Reset);
+    let marker_color = style.fg.unwrap_or(Color::Reset);
+    Canvas::default()
+        .marker(Marker::Braille)
+        .x_bounds([-1.1, 1.1])
+        .y_bounds([-1.1, 1.1])
+        .paint(|context| {
+            context.draw(&Circle::new(0.0, 0.0, 1.0, gate_color));
+            context.layer();
+            context.draw(&Circle::new(
+                f64::from(x.clamp(-1.0, 1.0)) * 0.75,
+                f64::from(axis_y.clamp(-1.0, 1.0)) * 0.75,
+                0.08,
+                marker_color,
+            ));
+        })
+        .render(circle, buffer);
+    Paragraph::new(
         Line::styled(
             format!("{} {}", control.label(), if pressed { "●" } else { "○" }),
             style,
         )
         .alignment(Alignment::Center),
-    ])
-    .render(area, buffer);
+    )
+    .render(Rect::new(center.saturating_sub(5), y + 4, 10, 1), buffer);
 }
 
 fn render_art_diamond(
