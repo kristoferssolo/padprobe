@@ -34,6 +34,11 @@ pub fn render(frame: &mut Frame<'_>, app: &App) {
 }
 
 fn render_full(frame: &mut Frame<'_>, app: &App, area: Rect) {
+    if area.width >= 96 && area.height >= 26 {
+        render_dashboard(frame, app, area);
+        return;
+    }
+
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -45,6 +50,21 @@ fn render_full(frame: &mut Frame<'_>, app: &App, area: Rect) {
     render_live_state(frame, app, vertical[0]);
     render_events(frame, app, vertical[1]);
     render_footer(frame, app, vertical[2]);
+}
+
+fn render_dashboard(frame: &mut Frame<'_>, app: &App, area: Rect) {
+    let vertical = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(25), Constraint::Length(1)])
+        .split(area);
+    let columns = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(52), Constraint::Percentage(48)])
+        .split(vertical[0]);
+
+    render_live_state(frame, app, columns[0]);
+    render_events(frame, app, columns[1]);
+    render_footer(frame, app, vertical[1]);
 }
 
 fn render_compact(frame: &mut Frame<'_>, app: &App, area: Rect) {
