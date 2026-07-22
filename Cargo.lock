@@ -953,6 +953,7 @@ dependencies = [
  "color-eyre",
  "crossterm",
  "gilrs",
+ "padprobe-gamepad-widget",
  "ratatui",
  "serde",
  "serde_json",

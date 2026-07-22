@@ -1,8 +1,9 @@
 mod adapter;
 
+use padprobe_gamepad_widget::GamepadWidget;
 use ratatui::{Frame, layout::Rect};
 
-use crate::{app::DeviceState, widgets::gamepad::GamepadWidget};
+use crate::app::DeviceState;
 
 use self::adapter::gamepad_state;
 

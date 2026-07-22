@@ -1,9 +1,7 @@
 use gilrs::{Axis, Button};
+use padprobe_gamepad_widget::{Control, ControlCluster, ControlValue, GamepadState};
 
-use crate::{
-    app::DeviceState,
-    widgets::gamepad::{Control, ControlCluster, ControlValue, GamepadState},
-};
+use crate::app::DeviceState;
 
 pub(super) fn gamepad_state(device: &DeviceState) -> GamepadState {
     let mut clusters = vec![
