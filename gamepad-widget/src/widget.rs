@@ -54,11 +54,8 @@ impl Widget for GamepadWidget<'_> {
             return;
         }
 
-        if let Some(areas) = controller_areas(area, clusters) {
-            render_controller_outline(area, buffer, self.border_style);
-            for (cluster, area) in clusters.iter().zip(areas) {
-                render_overview_cluster(cluster, area, buffer, self);
-            }
+        if controller_areas(area, clusters).is_some() {
+            render_controller_art(area, buffer, self);
             return;
         }
 
@@ -84,155 +81,221 @@ impl Widget for GamepadWidget<'_> {
     }
 }
 
-fn render_overview_cluster(
-    cluster: &ControlCluster,
+fn render_controller_art(area: Rect, buffer: &mut Buffer, widget: GamepadWidget<'_>) {
+    let width = area.width.min(70);
+    let height = area.height.min(23);
+    let art = Rect::new(
+        area.x + area.width.saturating_sub(width) / 2,
+        area.y + area.height.saturating_sub(height) / 2,
+        width,
+        height,
+    );
+    render_shell(art, buffer, widget.border_style);
+
+    let left_center = art.x + art.width / 4;
+    let right_center = art.x + art.width * 3 / 4;
+    render_control_row(
+        cluster_at(widget.state, ClusterPlacement::LeftShoulder),
+        Rect::new(art.x + 2, art.y, art.width / 3, 1),
+        buffer,
+        widget,
+    );
+    render_control_row(
+        cluster_at(widget.state, ClusterPlacement::RightShoulder),
+        Rect::new(
+            art.right().saturating_sub(art.width / 3 + 2),
+            art.y,
+            art.width / 3,
+            1,
+        ),
+        buffer,
+        widget,
+    );
+    render_control_row(
+        cluster_at(widget.state, ClusterPlacement::Menu),
+        Rect::new(art.x + art.width / 3, art.y + 4, art.width / 3, 1),
+        buffer,
+        widget,
+    );
+    render_art_stick(
+        cluster_at(widget.state, ClusterPlacement::LeftStick),
+        left_center,
+        art.y + 6,
+        buffer,
+        widget,
+    );
+    render_art_diamond(
+        cluster_at(widget.state, ClusterPlacement::Face),
+        right_center,
+        art.y + 7,
+        buffer,
+        widget,
+    );
+    render_art_diamond(
+        cluster_at(widget.state, ClusterPlacement::DPad),
+        left_center,
+        art.y + 14,
+        buffer,
+        widget,
+    );
+    render_art_stick(
+        cluster_at(widget.state, ClusterPlacement::RightStick),
+        right_center,
+        art.y + 13,
+        buffer,
+        widget,
+    );
+}
+
+fn render_shell(area: Rect, buffer: &mut Buffer, style: Style) {
+    let left = area.x + 2;
+    let right = area.right().saturating_sub(3);
+    let top = area.y + 2;
+    let bottom = area.bottom().saturating_sub(2);
+    draw_horizontal(buffer, left + 6, right - 5, top, style);
+    buffer[(left + 5, top)].set_char('╭').set_style(style);
+    buffer[(right - 5, top)].set_char('╮').set_style(style);
+    draw_horizontal(buffer, left + 2, left + 5, top + 1, style);
+    draw_horizontal(buffer, right - 5, right - 1, top + 1, style);
+    buffer[(left + 1, top + 1)].set_char('╭').set_style(style);
+    buffer[(left + 5, top + 1)].set_char('╯').set_style(style);
+    buffer[(right - 5, top + 1)].set_char('╰').set_style(style);
+    buffer[(right - 1, top + 1)].set_char('╮').set_style(style);
+    for y in top + 2..bottom.saturating_sub(2) {
+        buffer[(left, y)].set_char('│').set_style(style);
+        buffer[(right, y)].set_char('│').set_style(style);
+    }
+    buffer[(left, top + 2)].set_char('╭').set_style(style);
+    buffer[(right, top + 2)].set_char('╮').set_style(style);
+    buffer[(left, bottom - 2)].set_char('╲').set_style(style);
+    buffer[(right, bottom - 2)].set_char('╱').set_style(style);
+    buffer[(left + 1, bottom - 1)]
+        .set_char('╰')
+        .set_style(style);
+    buffer[(right - 1, bottom - 1)]
+        .set_char('╯')
+        .set_style(style);
+    let grip = area.width / 4;
+    draw_horizontal(buffer, left + 2, left + grip + 1, bottom - 1, style);
+    draw_horizontal(buffer, right - grip, right - 1, bottom - 1, style);
+    buffer[(left + grip + 1, bottom - 1)]
+        .set_char('╮')
+        .set_style(style);
+    buffer[(right - grip - 1, bottom - 1)]
+        .set_char('╭')
+        .set_style(style);
+}
+
+fn draw_horizontal(buffer: &mut Buffer, start: u16, end: u16, y: u16, style: Style) {
+    for x in start..end {
+        buffer[(x, y)].set_char('─').set_style(style);
+    }
+}
+
+fn cluster_at(state: &GamepadState, placement: ClusterPlacement) -> Option<&ControlCluster> {
+    state
+        .clusters()
+        .iter()
+        .find(|cluster| cluster.placement() == placement)
+}
+
+fn render_control_row(
+    cluster: Option<&ControlCluster>,
     area: Rect,
     buffer: &mut Buffer,
     widget: GamepadWidget<'_>,
 ) {
-    if matches!(
-        cluster.placement(),
-        ClusterPlacement::LeftStick | ClusterPlacement::RightStick
-    ) && render_overview_stick(cluster, area, buffer, widget)
-    {
+    let Some(cluster) = cluster else {
         return;
-    }
-
-    let mut lines = vec![
-        Line::styled(
-            cluster.title().to_uppercase(),
-            widget.border_style.add_modifier(Modifier::BOLD),
-        )
-        .alignment(Alignment::Center),
-    ];
-    lines.extend(match cluster.placement() {
-        ClusterPlacement::DPad | ClusterPlacement::Face => {
-            diamond_lines(cluster, widget.idle_style, widget.active_style)
-        }
-        ClusterPlacement::LeftStick | ClusterPlacement::RightStick => {
-            stick_lines(cluster, widget.idle_style, widget.active_style)
-        }
-        _ => cluster
-            .controls()
-            .iter()
-            .map(|control| overview_control_line(control, widget.idle_style, widget.active_style))
-            .collect(),
-    });
-    Paragraph::new(lines).render(area, buffer);
+    };
+    let spans = cluster
+        .controls()
+        .iter()
+        .enumerate()
+        .flat_map(|(index, control)| {
+            (index > 0)
+                .then(|| Span::raw("  "))
+                .into_iter()
+                .chain(std::iter::once(control_span(
+                    control,
+                    widget.idle_style,
+                    widget.active_style,
+                )))
+        })
+        .collect::<Vec<_>>();
+    Paragraph::new(Line::from(spans).alignment(Alignment::Center)).render(area, buffer);
 }
 
-fn render_overview_stick(
-    cluster: &ControlCluster,
-    area: Rect,
+fn render_art_stick(
+    cluster: Option<&ControlCluster>,
+    center: u16,
+    y: u16,
     buffer: &mut Buffer,
     widget: GamepadWidget<'_>,
-) -> bool {
+) {
+    let Some(cluster) = cluster else {
+        return;
+    };
     let [control] = cluster.controls() else {
-        return false;
+        return;
     };
-    let ControlValue::Stick { x, y, pressed } = control.value() else {
-        return false;
+    let ControlValue::Stick {
+        x,
+        y: axis_y,
+        pressed,
+    } = control.value()
+    else {
+        return;
     };
-    let active = pressed || x.hypot(y) > 0.15;
-    let style = if active {
+    let style = if pressed || x.hypot(axis_y) > 0.15 {
         widget.active_style
     } else {
         widget.idle_style
     };
-    let lines = vertically_center(
-        vec![
-            Line::styled(
-                cluster.title().to_uppercase(),
-                widget.border_style.add_modifier(Modifier::BOLD),
-            )
+    let area = Rect::new(center.saturating_sub(7), y, 14, 5);
+    Paragraph::new(vec![
+        Line::styled("╭─────╮", widget.border_style).alignment(Alignment::Center),
+        Line::styled(format!("│  {}  │", stick_direction(x, axis_y)), style)
             .alignment(Alignment::Center),
-            Line::styled("╭─────╮", widget.border_style).alignment(Alignment::Center),
-            Line::styled(format!("│  {}  │", stick_direction(x, y)), style)
-                .alignment(Alignment::Center),
-            Line::styled("╰─────╯", widget.border_style).alignment(Alignment::Center),
-            Line::styled(
-                format!("{} {}", control.label(), if pressed { "●" } else { "○" }),
-                style,
-            )
-            .alignment(Alignment::Center),
-        ],
-        area.height,
-    );
-    Paragraph::new(lines).render(area, buffer);
-    true
+        Line::styled("╰─────╯", widget.border_style).alignment(Alignment::Center),
+        Line::styled(
+            format!("{} {}", control.label(), if pressed { "●" } else { "○" }),
+            style,
+        )
+        .alignment(Alignment::Center),
+    ])
+    .render(area, buffer);
 }
 
-fn overview_control_line(
-    control: &Control,
-    idle_style: Style,
-    active_style: Style,
-) -> Line<'static> {
-    let (text, active) = match control.value() {
-        ControlValue::Button { pressed } => (
-            format!("{} {}", if pressed { "●" } else { "○" }, control.label()),
-            pressed,
-        ),
-        ControlValue::Trigger { value } => {
-            let active = value.is_some_and(|value| value > 0.1);
-            (
-                format!("{} {}", if active { "●" } else { "○" }, control.label()),
-                active,
-            )
-        }
-        ControlValue::Stick { x, y, pressed } => (
-            format!(
-                "{} {} {x:+.2}, {y:+.2}",
-                stick_direction(x, y),
-                control.label()
-            ),
-            pressed || x.hypot(y) > 0.15,
-        ),
-        ControlValue::Axis { value } => (
-            format!("{} {value:+.3}", control.label()),
-            value.abs() > 0.15,
-        ),
-    };
-    Line::styled(text, if active { active_style } else { idle_style }).alignment(Alignment::Center)
-}
-
-fn render_controller_outline(area: Rect, buffer: &mut Buffer, style: Style) {
-    if area.width < 44 || area.height < 18 {
+fn render_art_diamond(
+    cluster: Option<&ControlCluster>,
+    center: u16,
+    y: u16,
+    buffer: &mut Buffer,
+    widget: GamepadWidget<'_>,
+) {
+    let Some(cluster) = cluster else {
         return;
-    }
+    };
+    Paragraph::new(diamond_lines(
+        cluster,
+        widget.idle_style,
+        widget.active_style,
+    ))
+    .render(Rect::new(center.saturating_sub(9), y, 18, 3), buffer);
+}
 
-    let left = area.x + 2;
-    let right = area.right().saturating_sub(3);
-    let top = area.y + 3;
-    let bottom = area.bottom().saturating_sub(2);
-    for x in left + 4..right.saturating_sub(3) {
-        buffer[(x, top)].set_char('─').set_style(style);
-    }
-    buffer[(left + 3, top)].set_char('╭').set_style(style);
-    buffer[(right - 3, top)].set_char('╮').set_style(style);
-    for y in top + 1..bottom.saturating_sub(1) {
-        buffer[(left, y)].set_char('│').set_style(style);
-        buffer[(right, y)].set_char('│').set_style(style);
-    }
-    buffer[(left, top + 1)].set_char('╭').set_style(style);
-    buffer[(right, top + 1)].set_char('╮').set_style(style);
-    buffer[(left, bottom - 1)].set_char('╰').set_style(style);
-    buffer[(right, bottom - 1)].set_char('╯').set_style(style);
-
-    let grip_width = area.width / 4;
-    for x in left + 1..left + grip_width {
-        buffer[(x, bottom)].set_char('─').set_style(style);
-    }
-    for x in right.saturating_sub(grip_width)..right {
-        buffer[(x, bottom)].set_char('─').set_style(style);
-    }
-    buffer[(left, bottom)].set_char('╰').set_style(style);
-    buffer[(left + grip_width, bottom)]
-        .set_char('╯')
-        .set_style(style);
-    buffer[(right - grip_width, bottom)]
-        .set_char('╰')
-        .set_style(style);
-    buffer[(right, bottom)].set_char('╯').set_style(style);
+fn control_span(control: &Control, idle_style: Style, active_style: Style) -> Span<'static> {
+    let active = match control.value() {
+        ControlValue::Button { pressed } => pressed,
+        ControlValue::Trigger { value } => value.is_some_and(|value| value > 0.1),
+        ControlValue::Stick { x, y, pressed } => pressed || x.hypot(y) > 0.15,
+        ControlValue::Axis { value } => value.abs() > 0.15,
+    };
+    Span::styled(
+        format!("{} {}", if active { "●" } else { "○" }, control.label()),
+        if active { active_style } else { idle_style },
+    )
 }
 
 fn vertically_center(lines: Vec<Line<'static>>, height: u16) -> Vec<Line<'static>> {
@@ -541,13 +604,12 @@ mod tests {
     }
 
     #[test]
-    fn overview_trigger_line_fits_compact_shoulder_area() {
+    fn controller_control_span_hides_exact_trigger_value() {
         let control = Control::new("LT", ControlValue::Trigger { value: Some(0.0) });
 
-        let line = overview_control_line(&control, Style::default(), Style::default());
+        let span = control_span(&control, Style::default(), Style::default());
 
-        assert_eq!(line.spans[0].content, "○ LT");
-        assert!(line.width() <= 18);
+        assert_eq!(span.content, "○ LT");
     }
 
     #[test]
@@ -695,7 +757,6 @@ mod tests {
             .iter()
             .map(ratatui::buffer::Cell::symbol)
             .collect::<String>();
-        assert!(symbols.contains("LEFT STICK"));
         assert!(symbols.contains("L3 ○"));
         assert!(!symbols.contains("x +0.00"));
         assert!(symbols.contains('─'));
