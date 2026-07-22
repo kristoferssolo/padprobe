@@ -27,14 +27,14 @@ pub(super) fn render_live_state(frame: &mut Frame<'_>, app: &App, area: Rect) {
         return;
     }
 
-    let sections = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(4), Constraint::Min(2)])
-        .split(inner);
-    render_metadata(frame, id, device, sections[0]);
-    if sections[1].width >= 44 && sections[1].height >= 21 {
-        render_gamepad(frame, device, sections[1]);
+    if inner.width >= 44 && inner.height >= 21 {
+        render_gamepad(frame, device, inner);
     } else {
+        let sections = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(4), Constraint::Min(2)])
+            .split(inner);
+        render_metadata(frame, id, device, sections[0]);
         let measurements = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(3), Constraint::Min(2)])
