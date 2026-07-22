@@ -22,6 +22,50 @@ pub enum AppTab {
     Timing,
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum EventKindFilter {
+    #[default]
+    All,
+    Buttons,
+    Axes,
+    System,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum EventDeviceFilter {
+    #[default]
+    All,
+    Selected,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum EventSearchState {
+    #[default]
+    Closed,
+    Open,
+}
+
+impl EventKindFilter {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::All => "all",
+            Self::Buttons => "buttons",
+            Self::Axes => "axes",
+            Self::System => "system",
+        }
+    }
+
+    const fn next(self) -> Self {
+        match self {
+            Self::All => Self::Buttons,
+            Self::Buttons => Self::Axes,
+            Self::Axes => Self::System,
+            Self::System => Self::All,
+        }
+    }
+}
+
 impl AppTab {
     const ALL: [Self; 5] = [
         Self::Dashboard,
@@ -59,6 +103,12 @@ pub struct App {
     pub selected_id: Option<usize>,
     pub events: VecDeque<EventEntry>,
     pub event_scroll_anchor: Option<u64>,
+    pub event_scroll_offset: usize,
+    pub event_kind_filter: EventKindFilter,
+    pub event_device_filter: EventDeviceFilter,
+    pub event_search: String,
+    pub event_search_state: EventSearchState,
+    pub evicted_event_count: u64,
     pub device_selector_visible: bool,
     pub help_visible: bool,
     pub active_tab: AppTab,
@@ -86,6 +136,12 @@ impl App {
             selected_id: None,
             events: VecDeque::with_capacity(EVENT_CAPACITY),
             event_scroll_anchor: None,
+            event_scroll_offset: 0,
+            event_kind_filter: EventKindFilter::default(),
+            event_device_filter: EventDeviceFilter::default(),
+            event_search: String::new(),
+            event_search_state: EventSearchState::default(),
+            evicted_event_count: 0,
             device_selector_visible: false,
             help_visible: false,
             active_tab: AppTab::default(),
@@ -212,6 +268,67 @@ impl App {
             .event_scroll_anchor
             .is_none()
             .then(|| self.events.back().map_or(0, |entry| entry.sequence));
+        self.event_scroll_offset = 0;
+    }
+
+    pub fn scroll_events_older(&mut self) {
+        if self.event_scroll_anchor.is_none() {
+            self.event_scroll_anchor = Some(self.events.back().map_or(0, |entry| entry.sequence));
+        }
+        self.event_scroll_offset = self
+            .event_scroll_offset
+            .saturating_add(1)
+            .min(self.events.len().saturating_sub(1));
+    }
+
+    pub const fn scroll_events_newer(&mut self) {
+        self.event_scroll_offset = self.event_scroll_offset.saturating_sub(1);
+    }
+
+    pub fn clear_events(&mut self) {
+        self.events.clear();
+        self.event_scroll_anchor = None;
+        self.event_scroll_offset = 0;
+        self.evicted_event_count = 0;
+        "Event history cleared".clone_into(&mut self.status);
+    }
+
+    pub fn cycle_event_kind_filter(&mut self) {
+        self.event_kind_filter = self.event_kind_filter.next();
+        self.status = format!("Event filter: {}", self.event_kind_filter.label());
+    }
+
+    pub fn toggle_event_device_filter(&mut self) {
+        self.event_device_filter = match self.event_device_filter {
+            EventDeviceFilter::All => EventDeviceFilter::Selected,
+            EventDeviceFilter::Selected => EventDeviceFilter::All,
+        };
+        if self.event_device_filter == EventDeviceFilter::Selected {
+            "Event filter: selected controller only"
+        } else {
+            "Event filter: all controllers"
+        }
+        .clone_into(&mut self.status);
+    }
+
+    #[must_use]
+    pub fn event_is_visible(&self, entry: &EventEntry) -> bool {
+        let device_matches = self.event_device_filter == EventDeviceFilter::All
+            || entry.device_id == self.selected_id;
+        let kind_matches = match self.event_kind_filter {
+            EventKindFilter::All => true,
+            EventKindFilter::Buttons => entry.description.starts_with("Button"),
+            EventKindFilter::Axes => entry.description.starts_with("Axis"),
+            EventKindFilter::System => {
+                !entry.description.starts_with("Button") && !entry.description.starts_with("Axis")
+            }
+        };
+        let search_matches = self.event_search.is_empty()
+            || entry
+                .description
+                .to_lowercase()
+                .contains(&self.event_search.to_lowercase());
+        device_matches && kind_matches && search_matches
     }
 
     pub fn record_notice(&mut self, description: impl Into<String>) {
@@ -411,6 +528,7 @@ impl App {
     fn push_event(&mut self, device_id: Option<usize>, description: String) {
         if self.events.len() == EVENT_CAPACITY {
             self.events.pop_front();
+            self.evicted_event_count += 1;
         }
         self.events.push_back(EventEntry {
             sequence: self.next_event_sequence,
