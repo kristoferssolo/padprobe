@@ -152,6 +152,7 @@ fn render_gate(
     }
 
     let gate_color = gate_style.fg.unwrap_or(Color::Reset);
+    let marker_color = marker_style.fg.unwrap_or(Color::Reset);
     Canvas::default()
         .marker(Marker::Braille)
         .x_bounds([-1.1, 1.1])
@@ -160,17 +161,15 @@ fn render_gate(
             context.draw(&Circle::new(0.0, 0.0, 1.0, gate_color));
             context.draw(&CanvasLine::new(-1.0, 0.0, 1.0, 0.0, gate_color));
             context.draw(&CanvasLine::new(0.0, -1.0, 0.0, 1.0, gate_color));
+            context.layer();
+            context.draw(&Circle::new(
+                f64::from(x.clamp(-1.0, 1.0)) * 0.82,
+                f64::from(y.clamp(-1.0, 1.0)) * 0.82,
+                0.06,
+                marker_color,
+            ));
         })
         .render(area, buffer);
-
-    let marker_x = f32::from(area.width.saturating_sub(1)) * (0.5 + x.clamp(-1.0, 1.0) * 0.4);
-    let marker_y = f32::from(area.height.saturating_sub(1)) * (0.5 - y.clamp(-1.0, 1.0) * 0.4);
-    buffer[(
-        area.x + marker_x.round() as u16,
-        area.y + marker_y.round() as u16,
-    )]
-        .set_char('●')
-        .set_style(marker_style);
 }
 
 #[cfg(test)]
@@ -198,7 +197,7 @@ mod tests {
                 .count()
                 > 20
         );
-        assert!(symbols.contains('●'));
+        assert!(!symbols.trim().is_empty());
     }
 
     #[test]
@@ -227,10 +226,27 @@ mod tests {
             buffer
                 .content()
                 .iter()
-                .position(|cell| cell.symbol() == "●")
+                .position(|cell| cell.fg == Color::Cyan)
         };
 
         assert_ne!(marker(&centered), marker(&upper_right));
+    }
+
+    #[test]
+    fn resting_marker_uses_the_canvas_center() {
+        let area = Rect::new(0, 0, 18, 11);
+        let mut buffer = Buffer::empty(area);
+
+        StickGauge::new("Stick", 0.0, 0.0).render(area, &mut buffer);
+        let marker_cells = buffer
+            .content()
+            .iter()
+            .enumerate()
+            .filter(|(_, cell)| cell.fg == Color::Cyan)
+            .map(|(index, _)| index)
+            .collect::<Vec<_>>();
+
+        assert!(marker_cells.contains(&(5 * usize::from(area.width) + 9)));
     }
 
     #[test]
