@@ -2,7 +2,7 @@ use color_eyre::eyre::{Result, eyre};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use gilrs::{EventType, Gilrs};
 use padprobe::{
-    app::{App, DeviceMetadata, Focus},
+    app::{App, DeviceMetadata},
     logging,
     rumble::RumbleTest,
     terminal::{self, TerminalSession},
@@ -133,8 +133,6 @@ fn handle_key(
                 app.record_notice_for(Some(device_id), message);
             }
         }
-        KeyCode::Tab => app.focus = app.focus.next(),
-        KeyCode::BackTab => app.focus = app.focus.previous(),
         KeyCode::Char('r') => {
             if let Some(test) = rumble_test.take() {
                 let _ = test.cancel();
@@ -150,7 +148,7 @@ fn handle_key(
                 }
             }
         }
-        KeyCode::Char('p') if app.focus == Focus::Events => {
+        KeyCode::Char('p') => {
             app.toggle_event_scroll();
         }
         _ => {}

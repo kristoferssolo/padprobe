@@ -5,14 +5,10 @@ use ratatui::{
     widgets::Paragraph,
 };
 
-use crate::app::{App, Focus};
+use crate::app::App;
 
 pub(super) fn render_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    let controls = if app.focus == Focus::Events {
-        "q quit | d devices | r rumble | tab focus | p pause events | ? help"
-    } else {
-        "q quit | d devices | r rumble | tab focus | ? help"
-    };
+    let controls = "q quit | d devices | r rumble | p pause events | ? help";
     let width = area.width as usize;
     let status_room = width.saturating_sub(controls.len() + 3);
     let status = if status_room > 8 {

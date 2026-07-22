@@ -15,7 +15,6 @@ pub(super) fn render_help(frame: &mut Frame<'_>, area: Rect) {
         Line::from("Keyboard controls"),
         Line::from(""),
         Line::from("  q / Ctrl-C       Quit"),
-        Line::from("  Tab / Shift-Tab  Change focused pane"),
         Line::from("  d                 Open controller selector"),
         Line::from("  ↑ ↓ / j k        Select a connected controller"),
         Line::from("  r                 Run a 300 ms rumble test"),
