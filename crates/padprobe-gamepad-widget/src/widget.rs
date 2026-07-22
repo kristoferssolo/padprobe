@@ -55,7 +55,7 @@ impl Widget for GamepadWidget<'_> {
             return;
         }
 
-        let areas = grid_areas(area, clusters.len());
+        let areas = cluster_areas(area, clusters);
         for (cluster, area) in clusters.iter().zip(areas) {
             let block = Block::default()
                 .borders(Borders::ALL)
@@ -224,6 +224,108 @@ fn stick_direction(x: f32, y: f32) -> char {
     }
 }
 
+fn cluster_areas(area: Rect, clusters: &[ControlCluster]) -> Vec<Rect> {
+    controller_areas(area, clusters).unwrap_or_else(|| grid_areas(area, clusters.len()))
+}
+
+fn controller_areas(area: Rect, clusters: &[ControlCluster]) -> Option<Vec<Rect>> {
+    const MIN_WIDTH: u16 = 88;
+    const MIN_HEIGHT: u16 = 19;
+    const TOP_HEIGHT: u16 = 4;
+    const GAP: u16 = 1;
+    const EXTRA_HEIGHT: u16 = 4;
+
+    let extras = clusters
+        .iter()
+        .filter(|cluster| {
+            matches!(
+                cluster.placement(),
+                ClusterPlacement::Flow | ClusterPlacement::Extra
+            )
+        })
+        .count();
+    if area.width < MIN_WIDTH || area.height < MIN_HEIGHT || extras > 1 {
+        return None;
+    }
+
+    let extra_height = if extras == 1 { EXTRA_HEIGHT + GAP } else { 0 };
+    let body_y = area.y + TOP_HEIGHT + GAP;
+    let body_bottom = area.bottom().saturating_sub(extra_height);
+    let body_height = body_bottom.saturating_sub(body_y);
+    let shoulder_columns = equal_columns(area, 3);
+    let body_columns = equal_columns(Rect::new(area.x, body_y, area.width, body_height), 4);
+
+    clusters
+        .iter()
+        .map(|cluster| {
+            let rect = match cluster.placement() {
+                ClusterPlacement::LeftShoulder => Rect::new(
+                    shoulder_columns[0].x,
+                    area.y,
+                    shoulder_columns[0].width,
+                    TOP_HEIGHT,
+                ),
+                ClusterPlacement::Menu => Rect::new(
+                    shoulder_columns[1].x,
+                    area.y,
+                    shoulder_columns[1].width,
+                    TOP_HEIGHT,
+                ),
+                ClusterPlacement::RightShoulder => Rect::new(
+                    shoulder_columns[2].x,
+                    area.y,
+                    shoulder_columns[2].width,
+                    TOP_HEIGHT,
+                ),
+                ClusterPlacement::LeftStick => top_aligned(body_columns[0], 10),
+                ClusterPlacement::Face => top_aligned(body_columns[3], 5),
+                ClusterPlacement::DPad => bottom_aligned(body_columns[1], 5),
+                ClusterPlacement::RightStick => bottom_aligned(body_columns[2], 10),
+                ClusterPlacement::Flow | ClusterPlacement::Extra => Rect::new(
+                    area.x,
+                    area.bottom().saturating_sub(EXTRA_HEIGHT),
+                    area.width,
+                    EXTRA_HEIGHT,
+                ),
+            };
+            (!rect.is_empty()).then_some(rect)
+        })
+        .collect()
+}
+
+fn equal_columns(area: Rect, count: usize) -> Vec<Rect> {
+    let gaps = u16::try_from(count.saturating_sub(1)).unwrap_or(u16::MAX);
+    let usable_width = area.width.saturating_sub(gaps);
+    let count = u16::try_from(count).unwrap_or(1);
+    let base_width = usable_width / count;
+
+    (0..count)
+        .map(|index| {
+            let x = area.x + index * (base_width + 1);
+            let width = if index + 1 == count {
+                area.right().saturating_sub(x)
+            } else {
+                base_width
+            };
+            Rect::new(x, area.y, width, area.height)
+        })
+        .collect()
+}
+
+fn top_aligned(area: Rect, height: u16) -> Rect {
+    Rect::new(area.x, area.y, area.width, area.height.min(height))
+}
+
+fn bottom_aligned(area: Rect, height: u16) -> Rect {
+    let height = area.height.min(height);
+    Rect::new(
+        area.x,
+        area.bottom().saturating_sub(height),
+        area.width,
+        height,
+    )
+}
+
 fn grid_areas(area: Rect, item_count: usize) -> Vec<Rect> {
     let columns = match area.width {
         89.. => item_count.min(3),
@@ -343,5 +445,32 @@ mod tests {
         let lines = stick_lines(&cluster, Style::default(), Style::default());
 
         assert_eq!(lines[7].spans[0].content, "x +0.30  y +0.40  r 0.50  L3 ●");
+    }
+
+    #[test]
+    fn semantic_layout_matches_controller_geometry() {
+        let clusters = [
+            ControlCluster::new("Left stick").with_placement(ClusterPlacement::LeftStick),
+            ControlCluster::new("D-pad").with_placement(ClusterPlacement::DPad),
+            ControlCluster::new("Right stick").with_placement(ClusterPlacement::RightStick),
+            ControlCluster::new("Face").with_placement(ClusterPlacement::Face),
+        ];
+
+        let areas = controller_areas(Rect::new(0, 0, 100, 20), &clusters)
+            .expect("wide area should use controller layout");
+
+        assert!(areas[0].x < areas[1].x);
+        assert!(areas[1].x < areas[2].x);
+        assert!(areas[2].x < areas[3].x);
+        assert!(areas[0].y < areas[1].y);
+        assert!(areas[3].y < areas[2].y);
+    }
+
+    #[test]
+    fn semantic_layout_falls_back_in_small_areas() {
+        let clusters =
+            [ControlCluster::new("Left stick").with_placement(ClusterPlacement::LeftStick)];
+
+        assert!(controller_areas(Rect::new(0, 0, 60, 12), &clusters).is_none());
     }
 }
