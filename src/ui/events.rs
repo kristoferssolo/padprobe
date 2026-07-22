@@ -1,8 +1,6 @@
-use ratatui::{Frame, layout::Rect, text::Line, widgets::Paragraph};
-
-use crate::app::App;
-
 use super::layout::panel_block;
+use crate::app::App;
+use ratatui::{Frame, layout::Rect, text::Line, widgets::Paragraph};
 
 pub(super) fn render_events(frame: &mut Frame<'_>, app: &App, area: Rect) {
     let title = if app.event_scroll_anchor.is_some() {

@@ -1,13 +1,11 @@
+use super::layout::{ACTIVE_BORDER, WARNING, centered_rect};
+use crate::app::App;
 use ratatui::{
     Frame,
     layout::Rect,
     style::{Color, Modifier, Style},
     widgets::{Block, Borders, Clear, List, ListItem, Paragraph},
 };
-
-use crate::app::App;
-
-use super::layout::{ACTIVE_BORDER, WARNING, centered_rect};
 
 pub(super) fn render_device_selector(frame: &mut Frame<'_>, app: &App, area: Rect) {
     let height = (app.device_order.len() as u16 + 2).clamp(5, 14);

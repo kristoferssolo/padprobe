@@ -1,14 +1,13 @@
-use std::{
-    io::{self, Stdout},
-    panic,
-};
-
 use color_eyre::eyre::Result;
 use crossterm::{
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{Terminal, backend::CrosstermBackend};
+use std::{
+    io::{self, Stdout},
+    panic,
+};
 
 pub struct TerminalSession {
     terminal: Terminal<CrosstermBackend<Stdout>>,

@@ -1,11 +1,10 @@
+use crate::app::App;
 use ratatui::{
     Frame,
     layout::Rect,
     style::{Color, Style},
     widgets::Paragraph,
 };
-
-use crate::app::App;
 
 pub(super) fn render_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
     let controls = "q quit | d devices | r rumble | p pause events | ? help";

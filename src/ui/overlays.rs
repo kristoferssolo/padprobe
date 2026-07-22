@@ -1,3 +1,4 @@
+use super::layout::{ACTIVE_BORDER, centered_rect};
 use ratatui::{
     Frame,
     layout::Rect,
@@ -5,8 +6,6 @@ use ratatui::{
     text::Line,
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
-
-use super::layout::{ACTIVE_BORDER, centered_rect};
 
 pub(super) fn render_help(frame: &mut Frame<'_>, area: Rect) {
     let popup = centered_rect(58, 14, area);
