@@ -82,15 +82,7 @@ impl Widget for StickGauge<'_> {
         .render(Rect::new(area.x, area.y, area.width, 1), buffer);
 
         let footer_height = u16::from(area.height >= 3).saturating_mul(2);
-        let plot_height = area.height.saturating_sub(1 + footer_height);
-        if plot_height > 0 {
-            let plot_width = area.width.min(plot_height.saturating_mul(2));
-            let plot = Rect::new(
-                area.x + area.width.saturating_sub(plot_width) / 2,
-                area.y + 1,
-                plot_width,
-                plot_height,
-            );
+        if let Some(plot) = gate_rect(area, footer_height) {
             render_gate(
                 plot,
                 buffer,
@@ -130,6 +122,21 @@ impl Widget for StickGauge<'_> {
         }
         Paragraph::new(lines).render(footer, buffer);
     }
+}
+
+fn gate_rect(area: Rect, footer_height: u16) -> Option<Rect> {
+    let available_height = area.height.saturating_sub(1 + footer_height);
+    let plot_height = available_height.min(area.width / 2);
+    if plot_height < 2 {
+        return None;
+    }
+    let plot_width = plot_height * 2;
+    Some(Rect::new(
+        area.x + area.width.saturating_sub(plot_width) / 2,
+        area.y + 1,
+        plot_width,
+        plot_height,
+    ))
 }
 
 fn render_gate(
@@ -224,5 +231,15 @@ mod tests {
         };
 
         assert_ne!(marker(&centered), marker(&upper_right));
+    }
+
+    #[test]
+    fn gate_uses_two_columns_per_row() {
+        let wide = gate_rect(Rect::new(0, 0, 30, 12), 2).expect("wide gate should fit");
+        let tall = gate_rect(Rect::new(0, 0, 30, 30), 2).expect("tall gate should fit");
+
+        assert_eq!(wide.width, wide.height * 2);
+        assert_eq!(tall.width, tall.height * 2);
+        assert_eq!(tall, Rect::new(0, 1, 30, 15));
     }
 }
