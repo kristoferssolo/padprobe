@@ -800,6 +800,11 @@ mod tests {
             .map(ratatui::buffer::Cell::symbol)
             .collect::<String>();
         assert!(symbols.contains("L3 ○"));
+        assert!(
+            symbols
+                .chars()
+                .any(|symbol| ('\u{2800}'..='\u{28ff}').contains(&symbol))
+        );
         assert!(!symbols.contains("x +0.00"));
         assert!(symbols.contains('─'));
         assert!(!symbols.contains('┌'));
