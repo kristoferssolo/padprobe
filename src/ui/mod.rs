@@ -7,6 +7,7 @@ mod gamepad;
 mod layout;
 mod live_state;
 mod overlays;
+mod range;
 mod tabs;
 
 use self::{
@@ -17,6 +18,7 @@ use self::{
     footer::render_footer,
     live_state::render_live_state,
     overlays::render_help,
+    range::render_range,
     tabs::{render_placeholder, render_tabs},
 };
 use crate::app::App;
@@ -57,6 +59,7 @@ fn render_full(frame: &mut Frame<'_>, app: &App, area: Rect) {
     if app.active_tab != crate::app::AppTab::Dashboard {
         match app.active_tab {
             crate::app::AppTab::Drift => render_drift(frame, app, vertical[1]),
+            crate::app::AppTab::Range => render_range(frame, app, vertical[1]),
             _ => render_placeholder(frame, app, vertical[1]),
         }
         return;

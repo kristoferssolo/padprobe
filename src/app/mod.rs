@@ -1,7 +1,7 @@
 mod device;
 #[cfg(test)]
 mod tests;
-use crate::analysis::{DriftTest, StickSide};
+use crate::analysis::{DriftTest, RangeTest, StickSide};
 pub use device::{AxisState, DeviceMetadata, DeviceState, StickTrace};
 use gilrs::{Axis, EventType};
 use std::{
@@ -65,6 +65,7 @@ pub struct App {
     pub should_quit: bool,
     pub status: String,
     pub drift_test: DriftTest,
+    pub range_test: RangeTest,
     next_event_sequence: u64,
 }
 
@@ -90,6 +91,7 @@ impl App {
             should_quit: false,
             status: "gilrs backend ready".to_owned(),
             drift_test: DriftTest::default(),
+            range_test: RangeTest::default(),
             next_event_sequence: FIRST_EVENT_SEQUENCE,
         }
     }
@@ -131,6 +133,10 @@ impl App {
             self.drift_test.cancel();
             self.record_notice_for(Some(id), "Drift test cancelled: controller disconnected");
         }
+        if self.range_test.device_id() == Some(id) {
+            self.range_test.cancel();
+            self.record_notice_for(Some(id), "Range test cancelled: controller disconnected");
+        }
     }
 
     pub fn apply_controller_event(&mut self, id: usize, event: &EventType) {
@@ -157,6 +163,13 @@ impl App {
                 update_stick_trace(device, *axis);
             }
             _ => {}
+        }
+
+        if let EventType::AxisChanged(axis, _, _) = event
+            && axis_matches_stick(*axis, self.range_test.side())
+        {
+            let position = stick_position(device, self.range_test.side());
+            self.range_test.record(id, position);
         }
 
         self.push_event(Some(id), format_event(event));
@@ -243,6 +256,46 @@ impl App {
                 self.drift_test.side().label()
             ),
         );
+    }
+
+    pub fn select_range_stick(&mut self, side: StickSide) {
+        self.range_test.select_side(side);
+        self.status = format!("{} stick selected for range test", side.label());
+    }
+
+    pub fn toggle_range_test(&mut self) {
+        if self.range_test.is_recording() {
+            let completed = self.range_test.finish();
+            self.record_notice(if completed {
+                "Stick range test completed"
+            } else {
+                "Range test needs movement around the outer edge"
+            });
+            return;
+        }
+        let Some((id, device)) = self.selected_device() else {
+            self.record_notice("Range test unavailable: no controller selected");
+            return;
+        };
+        if !device.connected {
+            self.record_notice_for(Some(id), "Range test unavailable: controller disconnected");
+            return;
+        }
+        self.range_test.start(id);
+        self.record_notice_for(
+            Some(id),
+            format!(
+                "Recording {} stick range — trace the outer edge, then press s",
+                self.range_test.side().label()
+            ),
+        );
+    }
+
+    pub fn cancel_range_test(&mut self) {
+        if self.range_test.device_id().is_some() {
+            self.range_test.cancel();
+            self.record_notice("Range test cancelled");
+        }
     }
 
     pub fn cancel_drift_test(&mut self) {
@@ -336,6 +389,14 @@ fn stick_position(device: &DeviceState, side: StickSide) -> (f32, f32) {
     (
         device.axes.get(&x_axis).map_or(0.0, |axis| axis.current),
         device.axes.get(&y_axis).map_or(0.0, |axis| axis.current),
+    )
+}
+
+const fn axis_matches_stick(axis: Axis, side: StickSide) -> bool {
+    matches!(
+        (axis, side),
+        (Axis::LeftStickX | Axis::LeftStickY, StickSide::Left)
+            | (Axis::RightStickX | Axis::RightStickY, StickSide::Right)
     )
 }
 
