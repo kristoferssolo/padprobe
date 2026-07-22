@@ -231,7 +231,7 @@ fn cluster_areas(area: Rect, clusters: &[ControlCluster]) -> Vec<Rect> {
 fn controller_areas(area: Rect, clusters: &[ControlCluster]) -> Option<Vec<Rect>> {
     const MIN_WIDTH: u16 = 88;
     const MIN_HEIGHT: u16 = 17;
-    const TOP_HEIGHT: u16 = 4;
+    const TOP_HEIGHT: u16 = 5;
     const GAP: u16 = 1;
     const EXTRA_HEIGHT: u16 = 4;
 
@@ -249,6 +249,9 @@ fn controller_areas(area: Rect, clusters: &[ControlCluster]) -> Option<Vec<Rect>
     }
 
     let extra_height = if extras == 1 { EXTRA_HEIGHT + GAP } else { 0 };
+    if area.height < MIN_HEIGHT + extra_height {
+        return None;
+    }
     let body_y = area.y + TOP_HEIGHT + GAP;
     let body_bottom = area.bottom().saturating_sub(extra_height);
     let body_height = body_bottom.saturating_sub(body_y);
@@ -277,10 +280,10 @@ fn controller_areas(area: Rect, clusters: &[ControlCluster]) -> Option<Vec<Rect>
                     shoulder_columns[2].width,
                     TOP_HEIGHT,
                 ),
-                ClusterPlacement::LeftStick => top_aligned(body_columns[0], 11),
-                ClusterPlacement::Face => top_aligned(body_columns[3], 5),
-                ClusterPlacement::DPad => bottom_aligned(body_columns[1], 5),
-                ClusterPlacement::RightStick => bottom_aligned(body_columns[2], 11),
+                ClusterPlacement::LeftStick => body_columns[0],
+                ClusterPlacement::DPad => body_columns[1],
+                ClusterPlacement::RightStick => body_columns[2],
+                ClusterPlacement::Face => body_columns[3],
                 ClusterPlacement::Flow | ClusterPlacement::Extra => Rect::new(
                     area.x,
                     area.bottom().saturating_sub(EXTRA_HEIGHT),
@@ -310,20 +313,6 @@ fn equal_columns(area: Rect, count: usize) -> Vec<Rect> {
             Rect::new(x, area.y, width, area.height)
         })
         .collect()
-}
-
-fn top_aligned(area: Rect, height: u16) -> Rect {
-    Rect::new(area.x, area.y, area.width, area.height.min(height))
-}
-
-fn bottom_aligned(area: Rect, height: u16) -> Rect {
-    let height = area.height.min(height);
-    Rect::new(
-        area.x,
-        area.bottom().saturating_sub(height),
-        area.width,
-        height,
-    )
 }
 
 fn grid_areas(area: Rect, item_count: usize) -> Vec<Rect> {
@@ -463,8 +452,10 @@ mod tests {
         assert!(areas[0].x < areas[1].x);
         assert!(areas[1].x < areas[2].x);
         assert!(areas[2].x < areas[3].x);
-        assert!(areas[0].y < areas[1].y);
-        assert!(areas[3].y < areas[2].y);
+        assert_eq!(areas[0].y, areas[1].y);
+        assert_eq!(areas[1].y, areas[2].y);
+        assert_eq!(areas[2].y, areas[3].y);
+        assert_eq!(areas[0].height, areas[3].height);
     }
 
     #[test]
@@ -473,5 +464,26 @@ mod tests {
             [ControlCluster::new("Left stick").with_placement(ClusterPlacement::LeftStick)];
 
         assert!(controller_areas(Rect::new(0, 0, 60, 12), &clusters).is_none());
+    }
+
+    #[test]
+    fn semantic_layout_reserves_space_for_menu_controls() {
+        let clusters = [ControlCluster::new("Menu").with_placement(ClusterPlacement::Menu)];
+
+        let areas = controller_areas(Rect::new(0, 0, 100, 17), &clusters)
+            .expect("standard area should use controller layout");
+
+        assert_eq!(areas[0].height, 5);
+    }
+
+    #[test]
+    fn semantic_layout_does_not_clip_extra_cluster() {
+        let clusters = [
+            ControlCluster::new("Left stick").with_placement(ClusterPlacement::LeftStick),
+            ControlCluster::new("Extra").with_placement(ClusterPlacement::Extra),
+        ];
+
+        assert!(controller_areas(Rect::new(0, 0, 100, 17), &clusters).is_none());
+        assert!(controller_areas(Rect::new(0, 0, 100, 22), &clusters).is_some());
     }
 }
