@@ -1,19 +1,14 @@
 use gilrs::{Axis, Button};
-use padprobe_gamepad_widget::{Control, ControlCluster, ControlValue, GamepadState};
+use padprobe_gamepad_widget::{
+    ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState,
+};
 
 use crate::app::DeviceState;
 
 pub(super) fn gamepad_state(device: &DeviceState) -> GamepadState {
     let mut clusters = vec![
-        ControlCluster::new("Left controls")
-            .with_control(stick_control(
-                "Stick",
-                device,
-                Axis::LeftStickX,
-                Axis::LeftStickY,
-                Button::LeftThumb,
-            ))
-            .with_control(button_control("L3", device, Button::LeftThumb))
+        ControlCluster::new("Left shoulder")
+            .with_placement(ClusterPlacement::LeftShoulder)
             .with_control(button_control("LB", device, Button::LeftTrigger))
             .with_control(trigger_control(
                 "LT",
@@ -21,15 +16,38 @@ pub(super) fn gamepad_state(device: &DeviceState) -> GamepadState {
                 Axis::LeftZ,
                 Button::LeftTrigger2,
             )),
-        ControlCluster::new("D-pad")
-            .with_control(dpad_control("Up", device, Button::DPadUp, Axis::DPadY, 1.0))
-            .with_control(dpad_control(
-                "Down",
+        ControlCluster::new("Menu")
+            .with_placement(ClusterPlacement::Menu)
+            .with_control(button_control("Select", device, Button::Select))
+            .with_control(button_control("Mode", device, Button::Mode))
+            .with_control(button_control("Start", device, Button::Start)),
+        ControlCluster::new("Right shoulder")
+            .with_placement(ClusterPlacement::RightShoulder)
+            .with_control(button_control("RB", device, Button::RightTrigger))
+            .with_control(trigger_control(
+                "RT",
                 device,
-                Button::DPadDown,
-                Axis::DPadY,
-                -1.0,
-            ))
+                Axis::RightZ,
+                Button::RightTrigger2,
+            )),
+        ControlCluster::new("Left stick")
+            .with_placement(ClusterPlacement::LeftStick)
+            .with_control(stick_control(
+                "L3",
+                device,
+                Axis::LeftStickX,
+                Axis::LeftStickY,
+                Button::LeftThumb,
+            )),
+        ControlCluster::new("Face buttons")
+            .with_placement(ClusterPlacement::Face)
+            .with_control(button_control("North", device, Button::North))
+            .with_control(button_control("West", device, Button::West))
+            .with_control(button_control("East", device, Button::East))
+            .with_control(button_control("South", device, Button::South)),
+        ControlCluster::new("D-pad")
+            .with_placement(ClusterPlacement::DPad)
+            .with_control(dpad_control("Up", device, Button::DPadUp, Axis::DPadY, 1.0))
             .with_control(dpad_control(
                 "Left",
                 device,
@@ -43,31 +61,22 @@ pub(super) fn gamepad_state(device: &DeviceState) -> GamepadState {
                 Button::DPadRight,
                 Axis::DPadX,
                 1.0,
+            ))
+            .with_control(dpad_control(
+                "Down",
+                device,
+                Button::DPadDown,
+                Axis::DPadY,
+                -1.0,
             )),
-        ControlCluster::new("Menu")
-            .with_control(button_control("Select", device, Button::Select))
-            .with_control(button_control("Mode", device, Button::Mode))
-            .with_control(button_control("Start", device, Button::Start)),
-        ControlCluster::new("Face buttons")
-            .with_control(button_control("North", device, Button::North))
-            .with_control(button_control("West", device, Button::West))
-            .with_control(button_control("East", device, Button::East))
-            .with_control(button_control("South", device, Button::South)),
-        ControlCluster::new("Right controls")
+        ControlCluster::new("Right stick")
+            .with_placement(ClusterPlacement::RightStick)
             .with_control(stick_control(
-                "Stick",
+                "R3",
                 device,
                 Axis::RightStickX,
                 Axis::RightStickY,
                 Button::RightThumb,
-            ))
-            .with_control(button_control("R3", device, Button::RightThumb))
-            .with_control(button_control("RB", device, Button::RightTrigger))
-            .with_control(trigger_control(
-                "RT",
-                device,
-                Axis::RightZ,
-                Button::RightTrigger2,
             )),
     ];
 
@@ -140,7 +149,8 @@ fn dpad_control(
 }
 
 fn extra_controls(device: &DeviceState) -> ControlCluster {
-    let mut extras = ControlCluster::new("Extra / unmapped");
+    let mut extras =
+        ControlCluster::new("Extra / unmapped").with_placement(ClusterPlacement::Extra);
     for (label, button) in [
         ("C", Button::C),
         ("Z", Button::Z),
@@ -211,7 +221,7 @@ mod tests {
         let state = gamepad_state(&device);
 
         assert_eq!(
-            state.clusters()[1].controls()[0].value(),
+            state.clusters()[5].controls()[0].value(),
             ControlValue::Button { pressed: true }
         );
     }
@@ -253,8 +263,31 @@ mod tests {
         let state = gamepad_state(&device);
 
         assert_eq!(
-            state.clusters()[0].controls()[3].value(),
+            state.clusters()[0].controls()[1].value(),
             ControlValue::Trigger { value: Some(0.37) }
+        );
+    }
+
+    #[test]
+    fn controls_are_grouped_by_controller_role() {
+        let state = gamepad_state(&device());
+        let placements = state
+            .clusters()
+            .iter()
+            .map(ControlCluster::placement)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            placements,
+            [
+                ClusterPlacement::LeftShoulder,
+                ClusterPlacement::Menu,
+                ClusterPlacement::RightShoulder,
+                ClusterPlacement::LeftStick,
+                ClusterPlacement::Face,
+                ClusterPlacement::DPad,
+                ClusterPlacement::RightStick,
+            ]
         );
     }
 }
