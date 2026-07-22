@@ -77,6 +77,28 @@ fn axis_updates_preserve_observed_range() {
 }
 
 #[test]
+fn session_reset_preserves_live_input_and_clears_observations() {
+    let mut app = App::new();
+    app.connect(1, metadata("controller"));
+    let device = assert_some!(app.devices.get_mut(&1));
+    device.axes.insert(Axis::LeftStickX, AxisState::new(-0.4));
+    assert_some!(device.axes.get_mut(&Axis::LeftStickX)).update(0.25);
+    device.buttons.insert(gilrs::Button::South, true);
+    update_stick_trace(device, Axis::LeftStickX);
+
+    app.reset_selected_observations();
+
+    let device = &app.devices[&1];
+    let axis = device.axes[&Axis::LeftStickX];
+    assert!((axis.current - 0.25).abs() < f32::EPSILON);
+    assert!((axis.minimum - 0.25).abs() < f32::EPSILON);
+    assert!((axis.maximum - 0.25).abs() < f32::EPSILON);
+    assert_eq!(axis.changes, 0);
+    assert!(device.buttons[&gilrs::Button::South]);
+    assert!(device.left_stick_trace.points().is_empty());
+}
+
+#[test]
 fn analog_button_values_are_preserved() {
     let mut app = App::new();
     app.connect(1, metadata("controller"));

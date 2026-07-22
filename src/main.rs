@@ -151,6 +151,7 @@ fn handle_key(
         KeyCode::Char('p') => {
             app.toggle_event_scroll();
         }
+        KeyCode::Char('x') => app.reset_selected_observations(),
         _ => {}
     }
 }
