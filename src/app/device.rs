@@ -43,7 +43,8 @@ pub struct AxisState {
 }
 
 impl AxisState {
-    pub(super) fn new(value: f32) -> Self {
+    #[inline]
+    pub(super) const fn new(value: f32) -> Self {
         Self {
             current: value,
             minimum: value,
@@ -52,7 +53,8 @@ impl AxisState {
         }
     }
 
-    pub(super) fn update(&mut self, value: f32) {
+    #[inline]
+    pub(super) const fn update(&mut self, value: f32) {
         self.current = value;
         self.minimum = self.minimum.min(value);
         self.maximum = self.maximum.max(value);
@@ -67,10 +69,12 @@ pub struct StickTrace {
 
 impl StickTrace {
     #[must_use]
+    #[inline]
     pub fn points(&self) -> &[(f64, f64)] {
         &self.points
     }
 
+    #[inline]
     pub(super) fn push(&mut self, x: f32, y: f32) {
         if self.points.len() == STICK_TRACE_CAPACITY {
             self.points.drain(..STICK_TRACE_CAPACITY / 2);
@@ -78,7 +82,7 @@ impl StickTrace {
         self.points.push((f64::from(x), f64::from(y)));
     }
 
-    pub(super) fn clear(&mut self) {
+    fn clear(&mut self) {
         self.points.clear();
     }
 }
@@ -106,11 +110,23 @@ impl DeviceState {
             right_stick_trace: StickTrace::default(),
         }
     }
+
+    pub(super) fn clear_input_state(&mut self) {
+        self.buttons.clear();
+        self.button_values.clear();
+        self.axes.clear();
+        self.left_stick_trace.clear();
+        self.right_stick_trace.clear();
+    }
 }
 
 fn format_uuid(bytes: [u8; 16]) -> String {
-    bytes
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>()
+    const HEX_DIGITS: &[u8; 16] = b"0123456789abcdef";
+
+    let mut uuid = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        uuid.push(char::from(HEX_DIGITS[usize::from(byte >> 4)]));
+        uuid.push(char::from(HEX_DIGITS[usize::from(byte & 0x0f)]));
+    }
+    uuid
 }
