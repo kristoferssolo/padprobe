@@ -54,8 +54,14 @@ impl Widget for GamepadWidget<'_> {
             return;
         }
 
-        let areas = cluster_areas(area, clusters);
-        for (cluster, area) in clusters.iter().zip(areas) {
+        if let Some(areas) = controller_areas(area, clusters) {
+            for (cluster, area) in clusters.iter().zip(areas) {
+                render_overview_cluster(cluster, area, buffer, self);
+            }
+            return;
+        }
+
+        for (cluster, area) in clusters.iter().zip(grid_areas(area, clusters.len())) {
             let block = Block::default()
                 .borders(Borders::ALL)
                 .title(format!(" {} ", cluster.title()))
@@ -75,6 +81,34 @@ impl Widget for GamepadWidget<'_> {
             Paragraph::new(lines).render(inner, buffer);
         }
     }
+}
+
+fn render_overview_cluster(
+    cluster: &ControlCluster,
+    area: Rect,
+    buffer: &mut Buffer,
+    widget: GamepadWidget<'_>,
+) {
+    let mut lines = vec![
+        Line::styled(
+            cluster.title().to_uppercase(),
+            widget.border_style.add_modifier(Modifier::BOLD),
+        )
+        .alignment(Alignment::Center),
+    ];
+    lines.extend(match cluster.placement() {
+        ClusterPlacement::DPad | ClusterPlacement::Face => {
+            diamond_lines(cluster, widget.idle_style, widget.active_style)
+        }
+        ClusterPlacement::LeftStick | ClusterPlacement::RightStick => {
+            stick_lines(cluster, widget.idle_style, widget.active_style)
+        }
+        _ => control_lines(cluster, widget.idle_style, widget.active_style)
+            .into_iter()
+            .map(|line| line.alignment(Alignment::Center))
+            .collect(),
+    });
+    Paragraph::new(lines).render(area, buffer);
 }
 
 fn vertically_center(lines: Vec<Line<'static>>, height: u16) -> Vec<Line<'static>> {
@@ -233,39 +267,32 @@ fn stick_direction(x: f32, y: f32) -> char {
     }
 }
 
-fn cluster_areas(area: Rect, clusters: &[ControlCluster]) -> Vec<Rect> {
-    controller_areas(area, clusters).unwrap_or_else(|| grid_areas(area, clusters.len()))
-}
-
 fn controller_areas(area: Rect, clusters: &[ControlCluster]) -> Option<Vec<Rect>> {
-    const MIN_WIDTH: u16 = 88;
-    const MIN_HEIGHT: u16 = 17;
-    const TOP_HEIGHT: u16 = 5;
-    const GAP: u16 = 1;
-    const EXTRA_HEIGHT: u16 = 4;
+    const MIN_WIDTH: u16 = 44;
+    const MIN_HEIGHT: u16 = 21;
+    const TOP_HEIGHT: u16 = 4;
 
-    let extras = clusters
-        .iter()
-        .filter(|cluster| {
-            matches!(
-                cluster.placement(),
-                ClusterPlacement::Flow | ClusterPlacement::Extra
-            )
-        })
-        .count();
-    if area.width < MIN_WIDTH || area.height < MIN_HEIGHT || extras > 1 {
+    let has_unplaced_cluster = clusters.iter().any(|cluster| {
+        matches!(
+            cluster.placement(),
+            ClusterPlacement::Flow | ClusterPlacement::Extra
+        )
+    });
+    if area.width < MIN_WIDTH || area.height < MIN_HEIGHT || has_unplaced_cluster {
         return None;
     }
 
-    let extra_height = if extras == 1 { EXTRA_HEIGHT + GAP } else { 0 };
-    if area.height < MIN_HEIGHT + extra_height {
-        return None;
-    }
-    let body_y = area.y + TOP_HEIGHT + GAP;
-    let body_bottom = area.bottom().saturating_sub(extra_height);
-    let body_height = body_bottom.saturating_sub(body_y);
     let shoulder_columns = equal_columns(area, 3);
-    let body_columns = equal_columns(Rect::new(area.x, body_y, area.width, body_height), 4);
+    let body_y = area.y + TOP_HEIGHT;
+    let body_columns = equal_columns(
+        Rect::new(
+            area.x,
+            body_y,
+            area.width,
+            area.bottom().saturating_sub(body_y),
+        ),
+        2,
+    );
 
     clusters
         .iter()
@@ -289,16 +316,19 @@ fn controller_areas(area: Rect, clusters: &[ControlCluster]) -> Option<Vec<Rect>
                     shoulder_columns[2].width,
                     TOP_HEIGHT,
                 ),
-                ClusterPlacement::LeftStick => body_columns[0],
-                ClusterPlacement::DPad => body_columns[1],
-                ClusterPlacement::RightStick => body_columns[2],
-                ClusterPlacement::Face => body_columns[3],
-                ClusterPlacement::Flow | ClusterPlacement::Extra => Rect::new(
-                    area.x,
-                    area.bottom().saturating_sub(EXTRA_HEIGHT),
-                    area.width,
-                    EXTRA_HEIGHT,
-                ),
+                ClusterPlacement::LeftStick => {
+                    Rect::new(body_columns[0].x, body_y, body_columns[0].width, 11)
+                }
+                ClusterPlacement::Face => {
+                    Rect::new(body_columns[1].x, body_y, body_columns[1].width, 5)
+                }
+                ClusterPlacement::DPad => {
+                    Rect::new(body_columns[0].x, body_y + 11, body_columns[0].width, 5)
+                }
+                ClusterPlacement::RightStick => {
+                    Rect::new(body_columns[1].x, body_y + 6, body_columns[1].width, 11)
+                }
+                ClusterPlacement::Flow | ClusterPlacement::Extra => return None,
             };
             (!rect.is_empty()).then_some(rect)
         })
@@ -471,16 +501,14 @@ mod tests {
             ControlCluster::new("Face").with_placement(ClusterPlacement::Face),
         ];
 
-        let areas = controller_areas(Rect::new(0, 0, 100, 20), &clusters)
+        let areas = controller_areas(Rect::new(0, 0, 100, 21), &clusters)
             .expect("wide area should use controller layout");
 
-        assert!(areas[0].x < areas[1].x);
-        assert!(areas[1].x < areas[2].x);
-        assert!(areas[2].x < areas[3].x);
-        assert_eq!(areas[0].y, areas[1].y);
-        assert_eq!(areas[1].y, areas[2].y);
-        assert_eq!(areas[2].y, areas[3].y);
-        assert_eq!(areas[0].height, areas[3].height);
+        assert_eq!(areas[0].x, areas[1].x);
+        assert!(areas[0].x < areas[2].x);
+        assert_eq!(areas[2].x, areas[3].x);
+        assert!(areas[0].y < areas[1].y);
+        assert!(areas[3].y < areas[2].y);
     }
 
     #[test]
@@ -495,10 +523,10 @@ mod tests {
     fn semantic_layout_reserves_space_for_menu_controls() {
         let clusters = [ControlCluster::new("Menu").with_placement(ClusterPlacement::Menu)];
 
-        let areas = controller_areas(Rect::new(0, 0, 100, 17), &clusters)
+        let areas = controller_areas(Rect::new(0, 0, 100, 21), &clusters)
             .expect("standard area should use controller layout");
 
-        assert_eq!(areas[0].height, 5);
+        assert_eq!(areas[0].height, 4);
     }
 
     #[test]
@@ -508,7 +536,32 @@ mod tests {
             ControlCluster::new("Extra").with_placement(ClusterPlacement::Extra),
         ];
 
-        assert!(controller_areas(Rect::new(0, 0, 100, 17), &clusters).is_none());
-        assert!(controller_areas(Rect::new(0, 0, 100, 22), &clusters).is_some());
+        assert!(controller_areas(Rect::new(0, 0, 100, 22), &clusters).is_none());
+    }
+
+    #[test]
+    fn semantic_overview_avoids_nested_cluster_borders() {
+        let state = GamepadState::new([ControlCluster::new("Left stick")
+            .with_placement(ClusterPlacement::LeftStick)
+            .with_control(Control::new(
+                "L3",
+                ControlValue::Stick {
+                    x: 0.0,
+                    y: 0.0,
+                    pressed: false,
+                },
+            ))]);
+        let area = Rect::new(0, 0, 44, 21);
+        let mut buffer = Buffer::empty(area);
+
+        GamepadWidget::new(&state).render(area, &mut buffer);
+
+        let symbols = buffer
+            .content()
+            .iter()
+            .map(ratatui::buffer::Cell::symbol)
+            .collect::<String>();
+        assert!(symbols.contains("LEFT STICK"));
+        assert!(!symbols.contains('┌'));
     }
 }
