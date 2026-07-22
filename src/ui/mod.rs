@@ -1,3 +1,4 @@
+mod controls;
 mod devices;
 mod diagnostics;
 mod drift;
@@ -11,6 +12,7 @@ mod range;
 mod tabs;
 
 use self::{
+    controls::render_controls,
     devices::render_device_selector,
     diagnostics::{render_primary_diagnostics, render_raw_data},
     drift::render_drift,
@@ -60,6 +62,7 @@ fn render_full(frame: &mut Frame<'_>, app: &App, area: Rect) {
         match app.active_tab {
             crate::app::AppTab::Drift => render_drift(frame, app, vertical[1]),
             crate::app::AppTab::Range => render_range(frame, app, vertical[1]),
+            crate::app::AppTab::Controls => render_controls(frame, app, vertical[1]),
             _ => render_placeholder(frame, app, vertical[1]),
         }
         return;
