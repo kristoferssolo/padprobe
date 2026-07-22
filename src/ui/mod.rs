@@ -190,7 +190,7 @@ mod tests {
         assert!(rendered.contains("Triggers · 0–1"));
         assert!(rendered.contains("Raw mapped data"));
         assert!(rendered.contains("Recent events"));
-        assert!(rendered.contains("LEFT STICK"));
+        assert!(rendered.contains("L3 ○"));
         assert!(!rendered.contains("VID:PID"));
         assert!(
             rendered
