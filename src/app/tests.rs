@@ -1,4 +1,5 @@
 use super::*;
+use claims::assert_some;
 
 fn metadata(name: &str) -> DeviceMetadata {
     DeviceMetadata {
@@ -37,10 +38,7 @@ fn keeps_disconnected_device_selected() {
 fn disconnect_clears_stale_input_state() {
     let mut app = App::new();
     app.connect(4, metadata("controller"));
-    let device = app
-        .devices
-        .get_mut(&4)
-        .expect("fixture device should exist");
+    let device = assert_some!(app.devices.get_mut(&4));
     apply_button_value(device, gilrs::Button::LeftTrigger2, 1.0);
     device.axes.insert(Axis::LeftStickX, AxisState::new(0.75));
     update_stick_trace(device, Axis::LeftStickX);
@@ -82,10 +80,7 @@ fn axis_updates_preserve_observed_range() {
 fn analog_button_values_are_preserved() {
     let mut app = App::new();
     app.connect(1, metadata("controller"));
-    let device = app
-        .devices
-        .get_mut(&1)
-        .expect("fixture device should exist");
+    let device = assert_some!(app.devices.get_mut(&1));
 
     apply_button_value(device, gilrs::Button::LeftTrigger2, 0.37);
 
@@ -103,10 +98,7 @@ fn event_history_evicts_oldest_entry() {
     }
 
     assert_eq!(app.events.len(), EVENT_CAPACITY);
-    assert_eq!(
-        app.events.front().expect("event history should not be empty").description,
-        "event 0"
-    );
+    assert_eq!(assert_some!(app.events.front()).description, "event 0");
 }
 
 #[test]
@@ -115,19 +107,11 @@ fn pausing_events_captures_current_sequence() {
     app.connect(1, metadata("controller"));
 
     app.toggle_event_scroll();
-    let anchor = app
-        .event_scroll_anchor
-        .expect("event log should be paused");
+    let anchor = assert_some!(app.event_scroll_anchor);
     app.push_event(Some(1), "later event".to_owned());
 
     assert_eq!(app.event_scroll_anchor, Some(anchor));
-    assert!(
-        app.events
-            .back()
-            .expect("later event should be recorded")
-            .sequence
-            > anchor
-    );
+    assert!(assert_some!(app.events.back()).sequence > anchor);
 }
 
 #[test]
@@ -137,9 +121,7 @@ fn pausing_an_empty_log_hides_later_events() {
     app.toggle_event_scroll();
     app.push_event(None, "later event".to_owned());
 
-    let anchor = app
-        .event_scroll_anchor
-        .expect("event log should be paused");
+    let anchor = assert_some!(app.event_scroll_anchor);
     assert!(
         app.events
             .back()
@@ -162,10 +144,7 @@ fn device_selector_visibility_is_explicit() {
 fn stick_trace_records_paired_axis_positions() {
     let mut app = App::new();
     app.connect(1, metadata("controller"));
-    let device = app
-        .devices
-        .get_mut(&1)
-        .expect("fixture device should exist");
+    let device = assert_some!(app.devices.get_mut(&1));
     device.axes.insert(Axis::LeftStickX, AxisState::new(0.5));
     update_stick_trace(device, Axis::LeftStickX);
     device.axes.insert(Axis::LeftStickY, AxisState::new(-0.25));

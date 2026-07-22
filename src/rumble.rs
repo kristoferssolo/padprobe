@@ -36,7 +36,7 @@ impl RumbleTest {
             return Err(RumbleError::Unsupported);
         }
 
-        let ticks = Ticks::from_ms(TEST_DURATION.as_millis().try_into().unwrap_or(u32::MAX));
+        let ticks = Ticks::from(TEST_DURATION);
         let scheduling = Replay {
             play_for: ticks,
             ..Replay::default()
@@ -69,7 +69,8 @@ impl RumbleTest {
     }
 
     #[must_use]
-    pub fn device_id(&self) -> usize {
+    #[inline]
+    pub const fn device_id(&self) -> usize {
         self.device_id
     }
 

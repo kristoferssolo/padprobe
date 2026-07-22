@@ -8,7 +8,7 @@ pub(super) fn render_events(frame: &mut Frame<'_>, app: &App, area: Rect) {
     } else {
         " Recent events "
     };
-    let visible_rows = area.height.saturating_sub(2) as usize;
+    let visible_rows = usize::from(area.height.saturating_sub(2));
     let entries = app
         .events
         .iter()

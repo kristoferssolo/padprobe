@@ -12,7 +12,7 @@ pub const LOG_PATH_ENV: &str = "PADPROBE_LOG";
 
 /// Initializes file logging when `PADPROBE_LOG` contains a destination path.
 ///
-/// `RUST_LOG` controls filtering. When it is absent or invalid, PadProbe logs
+/// `RUST_LOG` controls filtering. When it is absent or invalid, `PadProbe` logs
 /// its own debug-level lifecycle events.
 ///
 /// # Errors

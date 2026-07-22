@@ -34,7 +34,8 @@ fn main() -> Result<()> {
     }
 
     let mut terminal = TerminalSession::start()?;
-    let mut last_frame = Instant::now() - FRAME_INTERVAL;
+    let now = Instant::now();
+    let mut last_frame = now.checked_sub(FRAME_INTERVAL).unwrap_or(now);
     let mut rumble_test = None;
 
     while !app.should_quit {
@@ -54,8 +55,10 @@ fn main() -> Result<()> {
                     if rumble_test
                         .as_ref()
                         .is_some_and(|test: &RumbleTest| test.device_id() == id)
+                        && let Some(test) = rumble_test.take()
+                        && let Err(error) = test.cancel()
                     {
-                        let _ = rumble_test.take().and_then(|test| test.cancel().err());
+                        warn!(%error, gamepad_id = id, "could not stop disconnected controller rumble");
                     }
                     app.disconnect(id);
                 }
@@ -63,10 +66,8 @@ fn main() -> Result<()> {
             }
         }
 
-        if rumble_test.as_ref().is_some_and(RumbleTest::is_finished) {
-            let device_id = rumble_test.as_ref().map(RumbleTest::device_id);
-            rumble_test = None;
-            app.record_notice_for(device_id, "Rumble test completed");
+        if let Some(test) = rumble_test.take_if(|test| test.is_finished()) {
+            app.record_notice_for(Some(test.device_id()), "Rumble test completed");
         }
 
         if last_frame.elapsed() >= FRAME_INTERVAL {
@@ -100,10 +101,7 @@ fn handle_key(
     }
 
     if app.help_visible {
-        if matches!(
-            key.code,
-            KeyCode::Esc | KeyCode::Char('?') | KeyCode::Char('q')
-        ) {
+        if matches!(key.code, KeyCode::Esc | KeyCode::Char('?' | 'q')) {
             app.help_visible = false;
         }
         return;
@@ -134,8 +132,10 @@ fn handle_key(
             }
         }
         KeyCode::Char('r') => {
-            if let Some(test) = rumble_test.take() {
-                let _ = test.cancel();
+            if let Some(test) = rumble_test.take()
+                && let Err(error) = test.cancel()
+            {
+                warn!(%error, "could not stop previous rumble test");
             }
             match RumbleTest::start(gilrs, app.selected_id) {
                 Ok(test) => {
