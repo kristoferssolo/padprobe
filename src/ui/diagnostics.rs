@@ -5,9 +5,31 @@ use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::Line,
-    widgets::{Block, BorderType, Borders, Paragraph},
+    text::{Line, Span},
+    widgets::{Block, BorderType, Borders, Paragraph, Wrap},
 };
+
+const NUMBERED_BUTTONS: [Button; 19] = [
+    Button::South,
+    Button::East,
+    Button::North,
+    Button::West,
+    Button::C,
+    Button::Z,
+    Button::LeftTrigger,
+    Button::LeftTrigger2,
+    Button::RightTrigger,
+    Button::RightTrigger2,
+    Button::Select,
+    Button::Start,
+    Button::Mode,
+    Button::LeftThumb,
+    Button::RightThumb,
+    Button::DPadUp,
+    Button::DPadDown,
+    Button::DPadLeft,
+    Button::DPadRight,
+];
 
 pub(super) fn render_primary_diagnostics(frame: &mut Frame<'_>, app: &App, area: Rect) {
     let columns = Layout::default()
@@ -47,41 +69,32 @@ pub(super) fn render_raw_data(frame: &mut Frame<'_>, app: &App, area: Rect) {
     } else {
         pressed.join(", ")
     };
-    let lines = vec![
+    let mut lines = vec![
         Line::styled(
             format!("gilrs · {}", device.metadata.mapping),
             Style::default().fg(Color::DarkGray),
         ),
-        Line::from(""),
-        Line::styled("AXES", Style::default().add_modifier(Modifier::BOLD)),
-        axis_pair(
-            "LX",
-            axis_value(device, Axis::LeftStickX),
-            "LY",
-            axis_value(device, Axis::LeftStickY),
+        Line::styled(
+            "AXES −1…+1 · Z channels are triggers",
+            Style::default().add_modifier(Modifier::BOLD),
         ),
-        axis_pair(
-            "RX",
-            axis_value(device, Axis::RightStickX),
-            "RY",
-            axis_value(device, Axis::RightStickY),
-        ),
-        axis_pair(
-            "LZ",
-            axis_value(device, Axis::LeftZ),
-            "RZ",
-            axis_value(device, Axis::RightZ),
-        ),
-        Line::from(""),
-        Line::styled("BUTTONS", Style::default().add_modifier(Modifier::BOLD)),
-        Line::from(format!(
-            "observed {} · pressed {}",
-            device.buttons.len(),
-            device.buttons.values().filter(|pressed| **pressed).count()
-        )),
-        Line::from(pressed),
     ];
-    frame.render_widget(Paragraph::new(lines), inner);
+    lines.extend(
+        [
+            ("LX", Axis::LeftStickX),
+            ("LY", Axis::LeftStickY),
+            ("RX", Axis::RightStickX),
+            ("RY", Axis::RightStickY),
+        ]
+        .map(|(label, axis)| signed_axis_bar(label, axis_value(device, axis), inner.width)),
+    );
+    lines.push(Line::styled(
+        "BUTTONS",
+        Style::default().add_modifier(Modifier::BOLD),
+    ));
+    lines.extend(button_grid(device, inner.width));
+    lines.push(Line::from(format!("Pressed: {pressed}")));
+    frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
 }
 
 fn render_sticks(frame: &mut Frame<'_>, device: Option<&DeviceState>, area: Rect) {
@@ -248,10 +261,50 @@ fn trigger_value(device: &DeviceState, axis: Axis, button: Button) -> f32 {
         .unwrap_or_default()
 }
 
-fn axis_pair(left_label: &str, left: f32, right_label: &str, right: f32) -> Line<'static> {
+fn signed_axis_bar(label: &str, value: f32, width: u16) -> Line<'static> {
+    let bar_width = usize::from(width.saturating_sub(18).clamp(7, 17));
+    let value = value.clamp(-1.0, 1.0);
+    let position = (((value + 1.0) / 2.0) * (bar_width.saturating_sub(1)) as f32).round() as usize;
+    let mut bar = vec!['─'; bar_width];
+    bar[bar_width / 2] = '┼';
+    bar[position] = '●';
     Line::from(format!(
-        "{left_label:<2} {left:+.2}   {right_label:<2} {right:+.2}"
+        "{label:<2} −1 [{}] +1 {value:+.2}",
+        bar.into_iter().collect::<String>()
     ))
+}
+
+fn button_grid(device: &DeviceState, width: u16) -> Vec<Line<'static>> {
+    const CELL_WIDTH: u16 = 5;
+    let columns = usize::from((width / CELL_WIDTH).max(1));
+    NUMBERED_BUTTONS
+        .chunks(columns)
+        .enumerate()
+        .map(|(row, buttons)| {
+            let spans = buttons
+                .iter()
+                .enumerate()
+                .flat_map(|(column, button)| {
+                    let index = row * columns + column;
+                    let pressed = device.buttons.get(button).copied().unwrap_or(false);
+                    (column > 0)
+                        .then(|| Span::raw(" "))
+                        .into_iter()
+                        .chain(std::iter::once(Span::styled(
+                            format!("[{index:>2}]"),
+                            if pressed {
+                                Style::default()
+                                    .fg(Color::Cyan)
+                                    .add_modifier(Modifier::BOLD)
+                            } else {
+                                Style::default().fg(Color::DarkGray)
+                            },
+                        )))
+                })
+                .collect::<Vec<_>>();
+            Line::from(spans)
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -262,5 +315,37 @@ mod tests {
     fn edge_error_requires_enough_outer_samples() {
         assert_eq!(edge_error(&[(1.0, 0.0); 7]), None);
         assert!((edge_error(&[(0.9, 0.0); 8]).expect("enough samples") - 10.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn signed_axis_bar_marks_center_and_extremes() {
+        assert!(signed_axis_bar("LX", -1.0, 40).to_string().contains("[●"));
+        assert!(signed_axis_bar("LX", 0.0, 40).to_string().contains('●'));
+        assert!(signed_axis_bar("LX", 1.0, 40).to_string().contains("●]"));
+    }
+
+    #[test]
+    fn button_grid_wraps_numbered_cells() {
+        let mut app = App::new();
+        app.connect(
+            0,
+            crate::app::DeviceMetadata {
+                name: "fixture".to_owned(),
+                vendor_id: None,
+                product_id: None,
+                uuid: String::new(),
+                mapping: "test".to_owned(),
+                power: "unknown".to_owned(),
+                rumble_supported: false,
+            },
+        );
+        let device = app.devices.get_mut(&0).expect("device should exist");
+        device.buttons.insert(Button::South, true);
+
+        let lines = button_grid(device, 20);
+
+        assert_eq!(lines.len(), 5);
+        assert_eq!(lines[0].spans[0].content, "[ 0]");
+        assert_eq!(lines[0].spans[0].style.fg, Some(Color::Cyan));
     }
 }
