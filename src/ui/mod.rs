@@ -38,7 +38,7 @@ fn render_full(frame: &mut Frame<'_>, app: &App, area: Rect) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Min(10),
-            Constraint::Length(cmp::min(10, area.height / 3)),
+            Constraint::Length(cmp::min(6, area.height / 4)),
             Constraint::Length(1),
         ])
         .split(area);
