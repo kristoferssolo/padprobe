@@ -1,4 +1,4 @@
-# padprobe-gamepad-widget
+# gamepad-widget
 
 A backend-neutral [Ratatui](https://ratatui.rs/) widget for displaying gamepad
 state as controller-positioned control clusters.
@@ -16,7 +16,7 @@ It has no controller-backend dependency. Applications translate input from
 `gilrs`, `evdev`, SDL, or another source into the crate's `GamepadState`.
 
 ```rust
-use padprobe_gamepad_widget::{
+use gamepad_widget::{
     ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState,
     GamepadWidget,
 };

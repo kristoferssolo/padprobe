@@ -64,12 +64,12 @@ numerical state table.
 ## Reusable gamepad widget
 
 The cluster renderer is the backend-neutral
-[`padprobe-gamepad-widget`](crates/padprobe-gamepad-widget) workspace crate. It
+[`gamepad-widget`](gamepad-widget) workspace crate. It
 does not depend on `gilrs` or PadProbe application state and can be published
 independently:
 
 ```rust
-use padprobe_gamepad_widget::{
+use gamepad_widget::{
     ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState,
     GamepadWidget,
 };

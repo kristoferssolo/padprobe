@@ -474,6 +474,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "gamepad-widget"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -952,21 +959,14 @@ version = "0.1.0"
 dependencies = [
  "color-eyre",
  "crossterm",
+ "gamepad-widget",
  "gilrs",
- "padprobe-gamepad-widget",
  "ratatui",
  "serde",
  "serde_json",
  "thiserror 2.0.19",
  "tracing",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "padprobe-gamepad-widget"
-version = "0.1.0"
-dependencies = [
- "ratatui",
 ]
 
 [[package]]
