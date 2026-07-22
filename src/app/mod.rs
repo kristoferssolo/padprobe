@@ -1,9 +1,7 @@
 mod device;
 #[cfg(test)]
 mod tests;
-
 pub use device::{AxisState, DeviceMetadata, DeviceState};
-
 use gilrs::EventType;
 use std::{
     collections::{HashMap, VecDeque},
