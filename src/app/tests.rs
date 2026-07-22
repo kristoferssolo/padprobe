@@ -110,3 +110,31 @@ fn device_selector_visibility_is_explicit() {
     app.close_device_selector();
     assert!(!app.device_selector_visible);
 }
+
+#[test]
+fn stick_trace_records_paired_axis_positions() {
+    let mut app = App::new();
+    app.connect(1, metadata("controller"));
+    let device = app
+        .devices
+        .get_mut(&1)
+        .expect("fixture device should exist");
+    device.axes.insert(Axis::LeftStickX, AxisState::new(0.5));
+    update_stick_trace(device, Axis::LeftStickX);
+    device.axes.insert(Axis::LeftStickY, AxisState::new(-0.25));
+    update_stick_trace(device, Axis::LeftStickY);
+
+    assert_eq!(device.left_stick_trace.points(), [(0.5, 0.0), (0.5, -0.25)]);
+}
+
+#[test]
+fn stick_trace_remains_bounded() {
+    let mut trace = StickTrace::default();
+
+    for index in 0..512 {
+        trace.push(index as f32, 0.0);
+    }
+
+    assert!(trace.points().len() <= 256);
+    assert_eq!(trace.points().last(), Some(&(511.0, 0.0)));
+}

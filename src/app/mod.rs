@@ -1,8 +1,8 @@
 mod device;
 #[cfg(test)]
 mod tests;
-pub use device::{AxisState, DeviceMetadata, DeviceState};
-use gilrs::EventType;
+pub use device::{AxisState, DeviceMetadata, DeviceState, StickTrace};
+use gilrs::{Axis, EventType};
 use std::{
     collections::{HashMap, VecDeque},
     time::{Duration, Instant},
@@ -65,6 +65,8 @@ impl App {
             device.buttons.clear();
             device.button_values.clear();
             device.axes.clear();
+            device.left_stick_trace.clear();
+            device.right_stick_trace.clear();
         } else {
             self.devices.insert(id, DeviceState::new(metadata));
             self.device_order.push(id);
@@ -118,6 +120,7 @@ impl App {
                     .entry(*axis)
                     .and_modify(|state| state.update(*value))
                     .or_insert_with(|| AxisState::new(*value));
+                update_stick_trace(device, *axis);
             }
             _ => {}
         }
@@ -203,6 +206,25 @@ impl App {
         });
         self.next_event_sequence += 1;
     }
+}
+
+fn update_stick_trace(device: &mut DeviceState, changed_axis: Axis) {
+    let (trace, x_axis, y_axis) = match changed_axis {
+        Axis::LeftStickX | Axis::LeftStickY => (
+            &mut device.left_stick_trace,
+            Axis::LeftStickX,
+            Axis::LeftStickY,
+        ),
+        Axis::RightStickX | Axis::RightStickY => (
+            &mut device.right_stick_trace,
+            Axis::RightStickX,
+            Axis::RightStickY,
+        ),
+        _ => return,
+    };
+    let x = device.axes.get(&x_axis).map_or(0.0, |state| state.current);
+    let y = device.axes.get(&y_axis).map_or(0.0, |state| state.current);
+    trace.push(x, y);
 }
 
 fn apply_button_value(device: &mut DeviceState, button: gilrs::Button, value: f32) {
