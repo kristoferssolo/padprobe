@@ -1,9 +1,11 @@
 //! Backend-neutral gamepad state and a responsive Ratatui widget.
 
 mod model;
+mod stick;
 mod widget;
 
 pub use model::{ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState};
+pub use stick::StickGauge;
 pub use widget::GamepadWidget;
 
 pub mod prelude {
@@ -11,5 +13,6 @@ pub mod prelude {
 
     pub use crate::{
         ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState, GamepadWidget,
+        StickGauge,
     };
 }
