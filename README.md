@@ -13,8 +13,8 @@ dependency.
 - Controller connect and disconnect handling
 - Explicit multi-controller selection
 - Persistent pressed-button and normalized axis state
-- Controller-shaped cluster view with circular stick gauges, analog trigger
-  bars, diamond-arranged face/D-pad buttons, and observed extra controls
+- Dashboard view with a unified controller overview plus dedicated analog-stick,
+  trigger-pressure, raw-data, and recent-event cards
 - Session minimum, maximum, and change count for observed axes
 - A 256-entry event history with pausable auto-scrolling
 - Device name, backend ID, VID/PID, UUID, mapping source, power information,
@@ -56,10 +56,10 @@ just check
 A disconnected selected controller remains selected so the disconnection is
 visible. Open the selector with `d` to choose another connected controller.
 
-The gamepad view groups related controls into separate boxes. Hollow circles
-indicate idle buttons, filled circles indicate pressed buttons, and active
-values are highlighted. On smaller terminals PadProbe falls back to the
-numerical state table.
+The gamepad overview places controls according to their role without assuming
+Xbox-specific button letters. Hollow circles indicate idle buttons, filled
+circles indicate pressed buttons, and active values are highlighted. Smaller
+terminals fall back to boxed clusters or the numerical state table.
 
 ## Reusable gamepad widget
 
