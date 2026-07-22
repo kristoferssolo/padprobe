@@ -15,6 +15,8 @@ dependency.
 - Persistent pressed-button and normalized axis state
 - Dashboard view with a unified controller overview plus dedicated analog-stick,
   trigger-pressure, raw-data, and recent-event cards
+- Bounded stick traces with observed resting offset and outer-edge error
+- Signed −1…+1 raw-axis bars and numbered mapped-button indicators
 - Session minimum, maximum, and change count for observed axes
 - A 256-entry event history with pausable auto-scrolling
 - Device name, backend ID, VID/PID, UUID, mapping source, power information,
@@ -56,12 +58,12 @@ just check
 A disconnected selected controller remains selected so the disconnection is
 visible. Open the selector with `d` to choose another connected controller.
 
-The gamepad overview places controls according to their role without assuming
-Xbox-specific button letters. Hollow circles indicate idle buttons, filled
-circles indicate pressed buttons, and active values are highlighted. Analog
-sticks use scalable Braille-resolution gates with a position marker, crosshair,
-coordinates, and radial magnitude. Smaller terminals fall back to boxed
-clusters or the numerical state table.
+The gamepad overview is a qualitative controller silhouette that places
+controls according to their role without assuming Xbox-specific button letters.
+Hollow circles indicate idle controls and filled circles indicate active
+controls. Exact stick coordinates, traces, offset/error measurements, and
+trigger pressure remain in their dedicated diagnostic cards. Smaller terminals
+fall back to boxed clusters or the numerical state table.
 
 ## Reusable gamepad widget
 
