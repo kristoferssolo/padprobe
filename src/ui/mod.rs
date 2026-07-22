@@ -108,3 +108,69 @@ fn render_compact(frame: &mut Frame<'_>, app: &App, area: Rect) {
     );
     render_footer(frame, app, chunks[1]);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::DeviceMetadata;
+    use ratatui::{Terminal, backend::TestBackend};
+
+    fn app() -> App {
+        let mut app = App::new();
+        app.connect(
+            0,
+            DeviceMetadata {
+                name: "Fixture Controller".to_owned(),
+                vendor_id: Some(0x1234),
+                product_id: Some(0x5678),
+                uuid: "fixture".to_owned(),
+                mapping: "standard".to_owned(),
+                power: "unknown".to_owned(),
+                rumble_supported: false,
+            },
+        );
+        app
+    }
+
+    fn render_text(width: u16, height: u16) -> String {
+        let backend = TestBackend::new(width, height);
+        let mut terminal = Terminal::new(backend).expect("test terminal should initialize");
+        terminal
+            .draw(|frame| render(frame, &app()))
+            .expect("test frame should render");
+        terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(ratatui::buffer::Cell::symbol)
+            .collect()
+    }
+
+    #[test]
+    fn wide_terminal_renders_dashboard_cards() {
+        let rendered = render_text(120, 30);
+
+        assert!(rendered.contains("Controller · Fixture Controller"));
+        assert!(rendered.contains("Analog sticks"));
+        assert!(rendered.contains("Triggers · 0–1"));
+        assert!(rendered.contains("Raw mapped data"));
+        assert!(rendered.contains("Recent events"));
+    }
+
+    #[test]
+    fn medium_terminal_uses_stacked_view() {
+        let rendered = render_text(80, 24);
+
+        assert!(rendered.contains("Controller · Fixture Controller"));
+        assert!(rendered.contains("Recent events"));
+        assert!(!rendered.contains("Analog sticks"));
+    }
+
+    #[test]
+    fn small_terminal_uses_compact_view() {
+        let rendered = render_text(50, 15);
+
+        assert!(rendered.contains("Terminal is too small"));
+    }
+}
