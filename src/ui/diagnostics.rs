@@ -25,6 +25,64 @@ pub(super) fn render_primary_diagnostics(frame: &mut Frame<'_>, app: &App, area:
     );
 }
 
+pub(super) fn render_raw_data(frame: &mut Frame<'_>, app: &App, area: Rect) {
+    let block = diagnostic_block(" Raw mapped data ", Color::Blue);
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+    let Some((_, device)) = app.selected_device() else {
+        frame.render_widget(Paragraph::new("No controller selected."), inner);
+        return;
+    };
+
+    let mut pressed = device
+        .buttons
+        .iter()
+        .filter(|(_, pressed)| **pressed)
+        .map(|(button, _)| format!("{button:?}"))
+        .collect::<Vec<_>>();
+    pressed.sort_unstable();
+    let pressed = if pressed.is_empty() {
+        "none".to_owned()
+    } else {
+        pressed.join(", ")
+    };
+    let lines = vec![
+        Line::styled(
+            format!("gilrs · {}", device.metadata.mapping),
+            Style::default().fg(Color::DarkGray),
+        ),
+        Line::from(""),
+        Line::styled("AXES", Style::default().add_modifier(Modifier::BOLD)),
+        axis_pair(
+            "LX",
+            axis_value(device, Axis::LeftStickX),
+            "LY",
+            axis_value(device, Axis::LeftStickY),
+        ),
+        axis_pair(
+            "RX",
+            axis_value(device, Axis::RightStickX),
+            "RY",
+            axis_value(device, Axis::RightStickY),
+        ),
+        axis_pair(
+            "LZ",
+            axis_value(device, Axis::LeftZ),
+            "RZ",
+            axis_value(device, Axis::RightZ),
+        ),
+        Line::from(""),
+        Line::styled("BUTTONS", Style::default().add_modifier(Modifier::BOLD)),
+        Line::from(format!(
+            "observed {} · pressed {}",
+            device.buttons.len(),
+            device.buttons.values().filter(|pressed| **pressed).count()
+        )),
+        Line::from(pressed),
+    ];
+    frame.render_widget(Paragraph::new(lines), inner);
+}
+
 fn render_sticks(frame: &mut Frame<'_>, device: Option<&DeviceState>, area: Rect) {
     let block = diagnostic_block(" Analog sticks ", Color::Cyan);
     let inner = block.inner(area);
@@ -162,6 +220,12 @@ fn trigger_value(device: &DeviceState, axis: Axis, button: Button) -> f32 {
                 .map(|state| (state.current + 1.0) / 2.0)
         })
         .unwrap_or_default()
+}
+
+fn axis_pair(left_label: &str, left: f32, right_label: &str, right: f32) -> Line<'static> {
+    Line::from(format!(
+        "{left_label:<2} {left:+.2}   {right_label:<2} {right:+.2}"
+    ))
 }
 
 #[cfg(test)]
