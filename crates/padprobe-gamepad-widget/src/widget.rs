@@ -1,12 +1,12 @@
 use ratatui::{
     buffer::Buffer,
-    layout::Rect,
+    layout::{Alignment, Rect},
     style::{Color, Modifier, Style},
-    text::Line,
+    text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Widget},
 };
 
-use crate::{Control, ControlValue, GamepadState};
+use crate::{ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState};
 
 #[derive(Clone, Copy, Debug)]
 pub struct GamepadWidget<'state> {
@@ -63,14 +63,58 @@ impl Widget for GamepadWidget<'_> {
                 .border_style(self.border_style);
             let inner = block.inner(area);
             block.render(area, buffer);
-            let lines = cluster
-                .controls()
-                .iter()
-                .map(|control| control_line(control, self.idle_style, self.active_style))
-                .collect::<Vec<_>>();
+            let lines = match cluster.placement() {
+                ClusterPlacement::DPad | ClusterPlacement::Face => {
+                    diamond_lines(cluster, self.idle_style, self.active_style)
+                }
+                _ => control_lines(cluster, self.idle_style, self.active_style),
+            };
             Paragraph::new(lines).render(inner, buffer);
         }
     }
+}
+
+fn control_lines(
+    cluster: &ControlCluster,
+    idle_style: Style,
+    active_style: Style,
+) -> Vec<Line<'static>> {
+    cluster
+        .controls()
+        .iter()
+        .map(|control| control_line(control, idle_style, active_style))
+        .collect()
+}
+
+fn diamond_lines(
+    cluster: &ControlCluster,
+    idle_style: Style,
+    active_style: Style,
+) -> Vec<Line<'static>> {
+    let [north, west, east, south] = cluster.controls() else {
+        return control_lines(cluster, idle_style, active_style);
+    };
+
+    vec![
+        Line::from(button_span(north, idle_style, active_style)).alignment(Alignment::Center),
+        Line::from(vec![
+            button_span(west, idle_style, active_style),
+            Span::raw("   "),
+            button_span(east, idle_style, active_style),
+        ])
+        .alignment(Alignment::Center),
+        Line::from(button_span(south, idle_style, active_style)).alignment(Alignment::Center),
+    ]
+}
+
+fn button_span(control: &Control, idle_style: Style, active_style: Style) -> Span<'static> {
+    let ControlValue::Button { pressed } = control.value() else {
+        return Span::styled(control.label().to_owned(), idle_style);
+    };
+    Span::styled(
+        format!("{} {}", if pressed { "●" } else { "○" }, control.label()),
+        if pressed { active_style } else { idle_style },
+    )
 }
 
 fn control_line(control: &Control, idle_style: Style, active_style: Style) -> Line<'static> {
@@ -189,5 +233,31 @@ mod tests {
     fn centered_stick_uses_idle_marker() {
         assert_eq!(stick_direction(0.0, 0.0), '·');
         assert_eq!(stick_direction(0.8, 0.8), '↗');
+    }
+
+    #[test]
+    fn diamond_places_cardinal_controls_on_three_rows() {
+        let cluster = ControlCluster::new("Face")
+            .with_placement(ClusterPlacement::Face)
+            .with_control(Control::new(
+                "North",
+                ControlValue::Button { pressed: false },
+            ))
+            .with_control(Control::new(
+                "West",
+                ControlValue::Button { pressed: false },
+            ))
+            .with_control(Control::new("East", ControlValue::Button { pressed: true }))
+            .with_control(Control::new(
+                "South",
+                ControlValue::Button { pressed: false },
+            ));
+
+        let lines = diamond_lines(&cluster, Style::default(), Style::default());
+
+        assert_eq!(lines[0].spans[0].content, "○ North");
+        assert_eq!(lines[1].spans[0].content, "○ West");
+        assert_eq!(lines[1].spans[2].content, "● East");
+        assert_eq!(lines[2].spans[0].content, "○ South");
     }
 }
