@@ -7,13 +7,13 @@ use ratatui::{
     widgets::{Paragraph, Row, Table},
 };
 
-use crate::app::{App, AxisState, DeviceState, Focus};
+use crate::app::{App, AxisState, DeviceState};
 
 use super::gamepad::render_gamepad;
-use super::layout::{WARNING, focused_block};
+use super::layout::{WARNING, panel_block};
 
 pub(super) fn render_live_state(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    let block = focused_block(" Live state ", app.focus == Focus::LiveState);
+    let block = panel_block(" Live state ");
     let Some((id, device)) = app.selected_device() else {
         frame.render_widget(Paragraph::new("No controller selected.").block(block), area);
         return;

@@ -1,8 +1,8 @@
 use ratatui::{Frame, layout::Rect, text::Line, widgets::Paragraph};
 
-use crate::app::{App, Focus};
+use crate::app::App;
 
-use super::layout::focused_block;
+use super::layout::panel_block;
 
 pub(super) fn render_events(frame: &mut Frame<'_>, app: &App, area: Rect) {
     let title = if app.event_scroll_anchor.is_some() {
@@ -32,8 +32,7 @@ pub(super) fn render_events(frame: &mut Frame<'_>, app: &App, area: Rect) {
         ))
     });
     frame.render_widget(
-        Paragraph::new(lines.collect::<Vec<_>>())
-            .block(focused_block(title, app.focus == Focus::Events)),
+        Paragraph::new(lines.collect::<Vec<_>>()).block(panel_block(title)),
         area,
     );
 }

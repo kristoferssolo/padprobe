@@ -12,31 +12,6 @@ use std::{
 
 pub const EVENT_CAPACITY: usize = 256;
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum Focus {
-    #[default]
-    LiveState,
-    Events,
-}
-
-impl Focus {
-    #[must_use]
-    pub const fn next(self) -> Self {
-        match self {
-            Self::LiveState => Self::Events,
-            Self::Events => Self::LiveState,
-        }
-    }
-
-    #[must_use]
-    pub const fn previous(self) -> Self {
-        match self {
-            Self::LiveState => Self::Events,
-            Self::Events => Self::LiveState,
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct EventEntry {
     pub sequence: u64,
@@ -52,7 +27,6 @@ pub struct App {
     pub device_order: Vec<usize>,
     pub selected_id: Option<usize>,
     pub events: VecDeque<EventEntry>,
-    pub focus: Focus,
     pub event_scroll_anchor: Option<u64>,
     pub device_selector_visible: bool,
     pub help_visible: bool,
@@ -76,7 +50,6 @@ impl App {
             device_order: Vec::new(),
             selected_id: None,
             events: VecDeque::with_capacity(EVENT_CAPACITY),
-            focus: Focus::default(),
             event_scroll_anchor: None,
             device_selector_visible: false,
             help_visible: false,
