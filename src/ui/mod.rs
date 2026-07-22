@@ -88,7 +88,7 @@ fn dashboard_sections(area: Rect) -> [Rect; 4] {
     );
     let lower_cards = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
         .split(lower);
     [
         Rect::new(
@@ -237,6 +237,7 @@ mod tests {
         assert_eq!(primary.height, 15);
         assert_eq!(raw.height, 14);
         assert_eq!(events.height, 14);
-        assert!(events.width >= 50);
+        assert!(raw.width < events.width);
+        assert!(events.width >= 60);
     }
 }
