@@ -1,4 +1,5 @@
 use crate::app::{App, DeviceState};
+use gamepad_widget::StickGauge;
 use gilrs::{Axis, Button};
 use ratatui::{
     Frame,
@@ -106,26 +107,22 @@ fn render_sticks(frame: &mut Frame<'_>, device: Option<&DeviceState>, area: Rect
 
 fn render_stick(frame: &mut Frame<'_>, label: &str, x: f32, y: f32, area: Rect) {
     let magnitude = x.hypot(y);
-    let style = if magnitude > 0.15 {
+    let value_style = if magnitude > 0.15 {
         Style::default().fg(Color::Cyan)
     } else {
         Style::default()
     };
-    let mut lines = vec![
-        Line::styled(
-            label.to_owned(),
-            Style::default().add_modifier(Modifier::BOLD),
-        )
-        .alignment(Alignment::Center),
-    ];
-    lines.extend(
-        stick_plot(x, y)
-            .into_iter()
-            .map(|line| Line::styled(line, style).alignment(Alignment::Center)),
+    frame.render_widget(
+        StickGauge::new(label, x, y)
+            .gate_style(Style::default().fg(Color::DarkGray))
+            .marker_style(
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .value_style(value_style),
+        area,
     );
-    lines.push(Line::styled(format!("{x:+.2}, {y:+.2}"), style).alignment(Alignment::Center));
-    lines.push(Line::styled(format!("r {magnitude:.2}"), style).alignment(Alignment::Center));
-    frame.render_widget(Paragraph::new(lines), area);
 }
 
 fn render_triggers(frame: &mut Frame<'_>, device: Option<&DeviceState>, area: Rect) {
@@ -189,22 +186,6 @@ fn diagnostic_block(title: &str, color: Color) -> Block<'_> {
         .title(Line::styled(title, Style::default().fg(color)))
 }
 
-fn stick_plot(x: f32, y: f32) -> Vec<String> {
-    let mut rows = [
-        "╭─────╮".chars().collect::<Vec<_>>(),
-        "│     │".chars().collect(),
-        "│     │".chars().collect(),
-        "│     │".chars().collect(),
-        "╰─────╯".chars().collect(),
-    ];
-    let column = usize::try_from(3_i32 + (x.clamp(-1.0, 1.0) * 2.0).round() as i32).unwrap_or(3);
-    let row = usize::try_from(2_i32 - y.clamp(-1.0, 1.0).round() as i32).unwrap_or(2);
-    rows[row][column] = if x.hypot(y) > 0.05 { '●' } else { '·' };
-    rows.into_iter()
-        .map(|characters| characters.into_iter().collect())
-        .collect()
-}
-
 fn axis_value(device: &DeviceState, axis: Axis) -> f32 {
     device.axes.get(&axis).map_or(0.0, |state| state.current)
 }
@@ -227,15 +208,4 @@ fn axis_pair(left_label: &str, left: f32, right_label: &str, right: f32) -> Line
     Line::from(format!(
         "{left_label:<2} {left:+.2}   {right_label:<2} {right:+.2}"
     ))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn stick_plot_moves_marker() {
-        assert_eq!(stick_plot(0.0, 0.0)[2].chars().nth(3), Some('·'));
-        assert_eq!(stick_plot(1.0, 1.0)[1].chars().nth(5), Some('●'));
-    }
 }
