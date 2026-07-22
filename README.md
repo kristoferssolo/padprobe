@@ -69,10 +69,7 @@ does not depend on `gilrs` or PadProbe application state and can be published
 independently:
 
 ```rust
-use gamepad_widget::{
-    ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState,
-    GamepadWidget,
-};
+use gamepad_widget::prelude::*;
 
 let state = GamepadState::new([
     ControlCluster::new("Face buttons")
