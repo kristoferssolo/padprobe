@@ -58,8 +58,10 @@ visible. Open the selector with `d` to choose another connected controller.
 
 The gamepad overview places controls according to their role without assuming
 Xbox-specific button letters. Hollow circles indicate idle buttons, filled
-circles indicate pressed buttons, and active values are highlighted. Smaller
-terminals fall back to boxed clusters or the numerical state table.
+circles indicate pressed buttons, and active values are highlighted. Analog
+sticks use scalable Braille-resolution gates with a position marker, crosshair,
+coordinates, and radial magnitude. Smaller terminals fall back to boxed
+clusters or the numerical state table.
 
 ## Reusable gamepad widget
 
