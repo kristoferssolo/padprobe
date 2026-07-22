@@ -10,6 +10,7 @@ mod live_state;
 mod overlays;
 mod range;
 mod tabs;
+mod timing;
 
 use self::{
     controls::render_controls,
@@ -21,7 +22,8 @@ use self::{
     live_state::render_live_state,
     overlays::render_help,
     range::render_range,
-    tabs::{render_placeholder, render_tabs},
+    tabs::render_tabs,
+    timing::render_timing,
 };
 use crate::app::App;
 use ratatui::{
@@ -63,7 +65,8 @@ fn render_full(frame: &mut Frame<'_>, app: &App, area: Rect) {
             crate::app::AppTab::Drift => render_drift(frame, app, vertical[1]),
             crate::app::AppTab::Range => render_range(frame, app, vertical[1]),
             crate::app::AppTab::Controls => render_controls(frame, app, vertical[1]),
-            _ => render_placeholder(frame, app, vertical[1]),
+            crate::app::AppTab::Timing => render_timing(frame, app, vertical[1]),
+            crate::app::AppTab::Dashboard => {}
         }
         return;
     }

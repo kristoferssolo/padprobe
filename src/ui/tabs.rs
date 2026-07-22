@@ -4,7 +4,7 @@ use ratatui::{
     layout::{Alignment, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Wrap},
+    widgets::Paragraph,
 };
 
 const TABS: [AppTab; 5] = [
@@ -33,24 +33,6 @@ pub(super) fn render_tabs(frame: &mut Frame<'_>, app: &App, area: Rect) {
     });
     frame.render_widget(
         Paragraph::new(Line::from(spans.collect::<Vec<_>>()).alignment(Alignment::Center)),
-        area,
-    );
-}
-
-pub(super) fn render_placeholder(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    let message = format!(
-        "{} diagnostics are ready for a guided session.\n\nThe controls for this test will appear here.",
-        app.active_tab.title()
-    );
-    frame.render_widget(
-        Paragraph::new(message)
-            .alignment(Alignment::Center)
-            .wrap(Wrap { trim: true })
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(format!(" {} ", app.active_tab.title())),
-            ),
         area,
     );
 }
