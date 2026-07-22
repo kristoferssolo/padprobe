@@ -1,4 +1,4 @@
-use crate::{ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState};
+use crate::{ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState, StickGauge};
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Rect},
@@ -89,6 +89,14 @@ fn render_overview_cluster(
     buffer: &mut Buffer,
     widget: GamepadWidget<'_>,
 ) {
+    if matches!(
+        cluster.placement(),
+        ClusterPlacement::LeftStick | ClusterPlacement::RightStick
+    ) && render_overview_stick(cluster, area, buffer, widget)
+    {
+        return;
+    }
+
     let mut lines = vec![
         Line::styled(
             cluster.title().to_uppercase(),
@@ -110,6 +118,32 @@ fn render_overview_cluster(
             .collect(),
     });
     Paragraph::new(lines).render(area, buffer);
+}
+
+fn render_overview_stick(
+    cluster: &ControlCluster,
+    area: Rect,
+    buffer: &mut Buffer,
+    widget: GamepadWidget<'_>,
+) -> bool {
+    let [control] = cluster.controls() else {
+        return false;
+    };
+    let ControlValue::Stick { x, y, pressed } = control.value() else {
+        return false;
+    };
+    let value_style = if pressed || x.hypot(y) > 0.15 {
+        widget.active_style
+    } else {
+        widget.idle_style
+    };
+    StickGauge::new(cluster.title(), x, y)
+        .button(control.label(), pressed)
+        .gate_style(widget.border_style)
+        .marker_style(widget.active_style)
+        .value_style(value_style)
+        .render(area, buffer);
+    true
 }
 
 fn overview_control_line(
@@ -603,6 +637,11 @@ mod tests {
             .map(ratatui::buffer::Cell::symbol)
             .collect::<String>();
         assert!(symbols.contains("LEFT STICK"));
+        assert!(
+            symbols
+                .chars()
+                .any(|symbol| ('\u{2800}'..='\u{28ff}').contains(&symbol))
+        );
         assert!(!symbols.contains('┌'));
     }
 }
