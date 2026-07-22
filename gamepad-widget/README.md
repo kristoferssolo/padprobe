@@ -5,10 +5,10 @@ state as a unified controller overview.
 
 The widget provides:
 
-- semantic placement for shoulders, menu buttons, sticks, D-pad, and face
-  buttons without nested cluster borders;
+- a qualitative controller silhouette with semantic placement for shoulders,
+  menu buttons, sticks, D-pad, and face buttons;
 - scalable Braille-resolution stick gauges with direction, magnitude,
-  coordinates, and click state;
+  coordinates, click state, observed traces, and optional metrics;
 - diamond layouts for D-pad and face buttons;
 - analog trigger bars;
 - a responsive grid fallback for narrow or short terminal areas.
