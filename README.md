@@ -13,8 +13,8 @@ dependency.
 - Controller connect and disconnect handling
 - Explicit multi-controller selection
 - Persistent pressed-button and normalized axis state
-- Responsive control-cluster view with stick coordinates, trigger bars, mapped
-  buttons, D-pad state, and observed extra controls
+- Controller-shaped cluster view with circular stick gauges, analog trigger
+  bars, diamond-arranged face/D-pad buttons, and observed extra controls
 - Session minimum, maximum, and change count for observed axes
 - A 256-entry event history with pausable auto-scrolling
 - Device name, backend ID, VID/PID, UUID, mapping source, power information,
@@ -63,28 +63,31 @@ numerical state table.
 
 ## Reusable gamepad widget
 
-The cluster renderer is a public, backend-neutral Ratatui widget under
-`padprobe::widgets::gamepad`. Its model does not depend on `gilrs` or PadProbe
-application state:
+The cluster renderer is the backend-neutral
+[`padprobe-gamepad-widget`](crates/padprobe-gamepad-widget) workspace crate. It
+does not depend on `gilrs` or PadProbe application state and can be published
+independently:
 
 ```rust
-use padprobe::widgets::gamepad::{
-    Control, ControlCluster, ControlValue, GamepadState, GamepadWidget,
+use padprobe_gamepad_widget::{
+    ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState,
+    GamepadWidget,
 };
 
 let state = GamepadState::new([
-    ControlCluster::new("Face buttons").with_control(Control::new(
-        "South",
-        ControlValue::Button { pressed: true },
-    )),
+    ControlCluster::new("Face buttons")
+        .with_placement(ClusterPlacement::Face)
+        .with_control(Control::new(
+            "South",
+            ControlValue::Button { pressed: true },
+        )),
 ]);
 
 frame.render_widget(GamepadWidget::new(&state), area);
 ```
 
-The `gilrs` conversion remains in PadProbe's UI adapter. This boundary allows
-the model and widget modules to be moved into an independent crate without
-pulling in the PadProbe backend or diagnostic state.
+The `gilrs` conversion remains in PadProbe's UI adapter, so consumers can feed
+the widget from any controller backend.
 
 ## Debug logging
 
