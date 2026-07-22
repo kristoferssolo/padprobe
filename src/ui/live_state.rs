@@ -1,3 +1,6 @@
+use super::gamepad::render_gamepad;
+use super::layout::{WARNING, panel_block};
+use crate::app::{App, AxisState, DeviceState};
 use gilrs::{Axis, Button};
 use ratatui::{
     Frame,
@@ -6,11 +9,6 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Paragraph, Row, Table},
 };
-
-use crate::app::{App, AxisState, DeviceState};
-
-use super::gamepad::render_gamepad;
-use super::layout::{WARNING, panel_block};
 
 pub(super) fn render_live_state(frame: &mut Frame<'_>, app: &App, area: Rect) {
     let block = panel_block(" Live state ");

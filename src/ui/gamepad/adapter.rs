@@ -1,7 +1,6 @@
+use crate::app::DeviceState;
 use gamepad_widget::{ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState};
 use gilrs::{Axis, Button};
-
-use crate::app::DeviceState;
 
 pub(super) fn gamepad_state(device: &DeviceState) -> GamepadState {
     let mut clusters = vec![
@@ -180,11 +179,9 @@ fn axis_value(device: &DeviceState, axis: Axis) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
-    use crate::app::{AxisState, DeviceMetadata};
-
     use super::*;
+    use crate::app::{AxisState, DeviceMetadata};
+    use std::collections::HashMap;
 
     fn device() -> DeviceState {
         DeviceState {

@@ -1,3 +1,4 @@
+use crate::{ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState};
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Rect},
@@ -5,8 +6,6 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Widget},
 };
-
-use crate::{ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState};
 
 #[derive(Clone, Copy, Debug)]
 pub struct GamepadWidget<'state> {

@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use gilrs::{Axis, Button, Gamepad, MappingSource};
+use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 pub struct DeviceMetadata {

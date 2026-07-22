@@ -5,7 +5,6 @@ use std::{
     path::{Path, PathBuf},
     sync::Mutex,
 };
-
 use thiserror::Error;
 use tracing_subscriber::{EnvFilter, fmt, util::SubscriberInitExt};
 
