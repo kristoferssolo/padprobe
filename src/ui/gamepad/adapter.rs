@@ -1,5 +1,5 @@
 use crate::app::DeviceState;
-use gamepad_widget::{ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState};
+use gamepad_widget::prelude::*;
 use gilrs::{Axis, Button};
 
 pub(super) fn gamepad_state(device: &DeviceState) -> GamepadState {
