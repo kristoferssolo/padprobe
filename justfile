@@ -26,16 +26,16 @@ fmt-check:
 
 # Run clippy
 clippy:
-    cargo clippy --all-targets --all-features -- -D warnings
+    cargo clippy --workspace --all-targets --all-features -- -D warnings
 
 # Build documentation
 docs:
-    RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features
+    RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features
 
 # Run tests with nextest (skip if no tests exist)
 test:
-    cargo nextest run --all-features --no-tests auto || true
-    cargo test --lib --bins
+    cargo nextest run --workspace --all-features --no-tests auto || true
+    cargo test --workspace --lib --bins
 
 # Run the app
 run:
@@ -43,7 +43,7 @@ run:
 
 # Build release binaries
 build:
-    cargo build --release
+    cargo build --workspace --release
 
 # Clean build artifacts
 clean:
