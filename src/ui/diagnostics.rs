@@ -74,10 +74,7 @@ pub(super) fn render_raw_data(frame: &mut Frame<'_>, app: &App, area: Rect) {
             format!("gilrs · {}", device.metadata.mapping),
             Style::default().fg(Color::DarkGray),
         ),
-        Line::styled(
-            "AXES −1…+1 · Z channels are triggers",
-            Style::default().add_modifier(Modifier::BOLD),
-        ),
+        Line::styled("AXES −1…+1", Style::default().add_modifier(Modifier::BOLD)),
     ];
     lines.extend(
         [
