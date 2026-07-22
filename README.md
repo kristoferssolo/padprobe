@@ -48,8 +48,7 @@ just check
 | `d` | Open the controller selector |
 | `↑`/`↓`, `j`/`k` | Select a connected controller inside the selector |
 | `Enter`, `Esc` | Close the controller selector |
-| `Tab`, `Shift-Tab` | Change focused pane |
-| `p` | Pause or resume event auto-scrolling while the event pane is focused |
+| `p` | Pause or resume event auto-scrolling |
 | `r` | Run a short rumble test when supported |
 | `Esc` | Cancel an active rumble test |
 | `?` | Open or close help |
