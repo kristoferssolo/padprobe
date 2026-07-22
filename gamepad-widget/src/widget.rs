@@ -63,9 +63,10 @@ impl Widget for GamepadWidget<'_> {
             let inner = block.inner(area);
             block.render(area, buffer);
             let lines = match cluster.placement() {
-                ClusterPlacement::DPad | ClusterPlacement::Face => {
-                    diamond_lines(cluster, self.idle_style, self.active_style)
-                }
+                ClusterPlacement::DPad | ClusterPlacement::Face => vertically_center(
+                    diamond_lines(cluster, self.idle_style, self.active_style),
+                    inner.height,
+                ),
                 ClusterPlacement::LeftStick | ClusterPlacement::RightStick => {
                     stick_lines(cluster, self.idle_style, self.active_style)
                 }
@@ -74,6 +75,14 @@ impl Widget for GamepadWidget<'_> {
             Paragraph::new(lines).render(inner, buffer);
         }
     }
+}
+
+fn vertically_center(lines: Vec<Line<'static>>, height: u16) -> Vec<Line<'static>> {
+    let padding = usize::from(height).saturating_sub(lines.len()) / 2;
+    let mut centered = Vec::with_capacity(padding + lines.len());
+    centered.resize_with(padding, Line::default);
+    centered.extend(lines);
+    centered
 }
 
 fn control_lines(
@@ -407,6 +416,22 @@ mod tests {
         assert_eq!(lines[1].spans[0].content, "○ West");
         assert_eq!(lines[1].spans[2].content, "● East");
         assert_eq!(lines[2].spans[0].content, "○ South");
+    }
+
+    #[test]
+    fn compact_controls_are_centered_in_tall_clusters() {
+        let lines = vertically_center(
+            vec![
+                Line::from("north"),
+                Line::from("middle"),
+                Line::from("south"),
+            ],
+            9,
+        );
+
+        assert_eq!(lines.len(), 6);
+        assert!(lines[0].spans.is_empty());
+        assert_eq!(lines[3].spans[0].content, "north");
     }
 
     #[test]
