@@ -1,7 +1,9 @@
 mod device;
 #[cfg(test)]
 mod tests;
-use crate::analysis::{ControlChecklist, DriftTest, RangeTest, StickSide};
+use crate::analysis::{
+    ControlChecklist, DriftTest, RangeTest, StickSide, TimingMetrics, TimingSample,
+};
 pub use device::{AxisState, DeviceMetadata, DeviceState, StickTrace};
 use gilrs::{Axis, EventType};
 use std::{
@@ -329,6 +331,24 @@ impl App {
                 .to_lowercase()
                 .contains(&self.event_search.to_lowercase());
         device_matches && kind_matches && search_matches
+    }
+
+    #[must_use]
+    pub fn selected_event_timing(&self) -> Option<TimingMetrics> {
+        let selected_id = self.selected_id?;
+        let samples = self
+            .events
+            .iter()
+            .filter(|entry| entry.device_id == Some(selected_id))
+            .filter(|entry| {
+                entry.description.starts_with("Button") || entry.description.starts_with("Axis")
+            })
+            .map(|entry| TimingSample {
+                elapsed_seconds: entry.elapsed.as_secs_f64(),
+                signature: entry.description.clone(),
+            })
+            .collect::<Vec<_>>();
+        TimingMetrics::calculate(&samples)
     }
 
     pub fn record_notice(&mut self, description: impl Into<String>) {

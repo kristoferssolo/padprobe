@@ -178,7 +178,9 @@ fn handle_key(
         KeyCode::Char('/') => app.event_search_state = EventSearchState::Open,
         KeyCode::Char('f') => app.cycle_event_kind_filter(),
         KeyCode::Char('v') => app.toggle_event_device_filter(),
-        KeyCode::Char('c') if app.active_tab == AppTab::Dashboard => app.clear_events(),
+        KeyCode::Char('c') if matches!(app.active_tab, AppTab::Dashboard | AppTab::Timing) => {
+            app.clear_events();
+        }
         KeyCode::Up if app.active_tab == AppTab::Dashboard => app.scroll_events_older(),
         KeyCode::Down if app.active_tab == AppTab::Dashboard => app.scroll_events_newer(),
         KeyCode::Char('x') => app.reset_selected_observations(),
