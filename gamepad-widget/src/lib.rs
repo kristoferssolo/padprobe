@@ -1,4 +1,5 @@
 //! Backend-neutral gamepad state and a responsive Ratatui widget.
+#![deny(missing_docs)]
 
 mod model;
 mod stick;

@@ -11,6 +11,11 @@ use ratatui::{
     },
 };
 
+/// A responsive, backend-neutral gamepad overview widget.
+///
+/// In sufficiently large areas, controls with semantic
+/// [`ClusterPlacement`] values are arranged in a controller-shaped layout.
+/// Smaller areas and generic clusters fall back to a responsive grid.
 #[derive(Clone, Copy, Debug)]
 pub struct GamepadWidget<'state> {
     state: &'state GamepadState,
@@ -20,6 +25,7 @@ pub struct GamepadWidget<'state> {
 }
 
 impl<'state> GamepadWidget<'state> {
+    /// Creates a widget that borrows the gamepad state to render.
     #[must_use]
     pub fn new(state: &'state GamepadState) -> Self {
         Self {
@@ -32,18 +38,21 @@ impl<'state> GamepadWidget<'state> {
         }
     }
 
+    /// Sets the style used for the controller outline and cluster borders.
     #[must_use]
     pub const fn border_style(mut self, style: Style) -> Self {
         self.border_style = style;
         self
     }
 
+    /// Sets the style used for controls that are not active.
     #[must_use]
     pub const fn idle_style(mut self, style: Style) -> Self {
         self.idle_style = style;
         self
     }
 
+    /// Sets the style used for pressed buttons and active analog controls.
     #[must_use]
     pub const fn active_style(mut self, style: Style) -> Self {
         self.active_style = style;
