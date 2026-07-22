@@ -157,6 +157,13 @@ mod tests {
         assert!(rendered.contains("Raw mapped data"));
         assert!(rendered.contains("Recent events"));
         assert!(rendered.contains("Connected"));
+        assert!(
+            rendered
+                .chars()
+                .filter(|symbol| ('\u{2800}'..='\u{28ff}').contains(symbol))
+                .count()
+                > 40
+        );
     }
 
     #[test]
