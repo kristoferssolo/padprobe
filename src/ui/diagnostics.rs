@@ -180,10 +180,10 @@ fn edge_error(trace: &[(f64, f64)]) -> Option<f64> {
         .iter()
         .map(|(x, y)| x.hypot(*y))
         .filter(|radius| *radius >= 0.8)
-        .fold((0_usize, 0.0), |(count, total), radius| {
-            (count + 1, total + (1.0 - radius).abs())
+        .fold((0.0, 0.0), |(count, total), radius| {
+            (count + 1.0, total + (1.0 - radius).abs())
         });
-    (sample_count >= 8).then(|| total_error / sample_count as f64 * 100.0)
+    (sample_count >= 8.0).then(|| total_error / sample_count * 100.0)
 }
 
 fn render_triggers(frame: &mut Frame<'_>, device: Option<&DeviceState>, area: Rect) {
@@ -207,8 +207,20 @@ fn render_triggers(frame: &mut Frame<'_>, device: Option<&DeviceState>, area: Re
 
 fn render_trigger(frame: &mut Frame<'_>, label: &str, value: f32, area: Rect) {
     const BAR_HEIGHT: usize = 6;
+    const FILL_THRESHOLDS: [f32; BAR_HEIGHT] = [
+        1.0 / 12.0,
+        3.0 / 12.0,
+        5.0 / 12.0,
+        7.0 / 12.0,
+        9.0 / 12.0,
+        11.0 / 12.0,
+    ];
+
     let value = value.clamp(0.0, 1.0);
-    let filled = (value * BAR_HEIGHT as f32).round() as usize;
+    let filled = FILL_THRESHOLDS
+        .into_iter()
+        .filter(|threshold| value >= *threshold)
+        .count();
     let mut lines = vec![Line::from("┌─────┐").alignment(Alignment::Center)];
     lines.extend((0..BAR_HEIGHT).map(|row| {
         let active = row >= BAR_HEIGHT.saturating_sub(filled);
@@ -247,10 +259,12 @@ fn diagnostic_block(title: &str, color: Color) -> Block<'_> {
         .title(Line::styled(title, Style::default().fg(color)))
 }
 
+#[inline]
 fn axis_value(device: &DeviceState, axis: Axis) -> f32 {
     device.axes.get(&axis).map_or(0.0, |state| state.current)
 }
 
+#[inline]
 fn trigger_value(device: &DeviceState, axis: Axis, button: Button) -> f32 {
     device
         .button_values
@@ -260,7 +274,7 @@ fn trigger_value(device: &DeviceState, axis: Axis, button: Button) -> f32 {
             device
                 .axes
                 .get(&axis)
-                .map(|state| (state.current + 1.0) / 2.0)
+                .map(|state| state.current.midpoint(1.0))
         })
         .unwrap_or_default()
 }
@@ -268,7 +282,7 @@ fn trigger_value(device: &DeviceState, axis: Axis, button: Button) -> f32 {
 fn signed_axis_bar(label: &str, value: f32, width: u16) -> Line<'static> {
     let bar_width = usize::from(width.saturating_sub(18).clamp(7, 17));
     let value = value.clamp(-1.0, 1.0);
-    let position = (((value + 1.0) / 2.0) * (bar_width.saturating_sub(1)) as f32).round() as usize;
+    let position = normalized_bar_position(value, bar_width);
     let mut bar = vec!['─'; bar_width];
     bar[bar_width / 2] = '┼';
     bar[position] = '●';
@@ -276,6 +290,17 @@ fn signed_axis_bar(label: &str, value: f32, width: u16) -> Line<'static> {
         "{label:<2} −1 [{}] +1 {value:+.2}",
         bar.into_iter().collect::<String>()
     ))
+}
+
+#[inline]
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "the normalized, clamped value maps to a bar no wider than 17 cells"
+)]
+fn normalized_bar_position(value: f32, bar_width: usize) -> usize {
+    let last_index = u16::try_from(bar_width.saturating_sub(1)).unwrap_or(u16::MAX);
+    (value.midpoint(1.0) * f32::from(last_index)).round() as usize
 }
 
 fn button_grid(device: &DeviceState, width: u16) -> Vec<Line<'static>> {
@@ -314,6 +339,7 @@ fn button_grid(device: &DeviceState, width: u16) -> Vec<Line<'static>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
 
     #[test]
     fn edge_error_requires_enough_outer_samples() {
@@ -353,13 +379,11 @@ mod tests {
         assert_eq!(lines[0].spans[0].style.fg, Some(Color::Cyan));
     }
 
-    #[test]
-    fn stick_metric_adapts_to_available_width() {
-        assert_eq!(
-            stick_metric(0.005, Some(2.0), 30),
-            "offset 0.5% · edge 2.0%"
-        );
-        assert_eq!(stick_metric(0.005, Some(2.0), 20), "off 0.5% · err 2.0%");
-        assert_eq!(stick_metric(0.005, Some(2.0), 17), "offset 0.5%");
+    #[rstest]
+    #[case(30, "offset 0.5% · edge 2.0%")]
+    #[case(20, "off 0.5% · err 2.0%")]
+    #[case(17, "offset 0.5%")]
+    fn stick_metric_adapts_to_available_width(#[case] width: u16, #[case] expected: &str) {
+        assert_eq!(stick_metric(0.005, Some(2.0), width), expected);
     }
 }

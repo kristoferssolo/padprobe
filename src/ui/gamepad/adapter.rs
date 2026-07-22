@@ -120,7 +120,7 @@ fn trigger_control(label: &str, device: &DeviceState, axis: Axis, button: Button
             device
                 .axes
                 .get(&axis)
-                .map(|state| (state.current + 1.0) / 2.0)
+                .map(|state| state.current.midpoint(1.0))
         })
         .or_else(|| device.buttons.get(&button).copied().map(f32::from))
         .unwrap_or_default();
@@ -169,10 +169,12 @@ fn extra_controls(device: &DeviceState) -> ControlCluster {
     extras
 }
 
+#[inline]
 fn pressed(device: &DeviceState, button: Button) -> bool {
     device.buttons.get(&button).copied().unwrap_or(false)
 }
 
+#[inline]
 fn axis_value(device: &DeviceState, axis: Axis) -> f32 {
     device.axes.get(&axis).map_or(0.0, |state| state.current)
 }

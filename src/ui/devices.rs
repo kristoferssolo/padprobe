@@ -8,7 +8,8 @@ use ratatui::{
 };
 
 pub(super) fn render_device_selector(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    let height = (app.device_order.len() as u16 + 2).clamp(5, 14);
+    let item_count = u16::try_from(app.device_order.len()).unwrap_or(u16::MAX);
+    let height = item_count.saturating_add(2).clamp(5, 14);
     let popup = centered_rect(62, height, area);
     frame.render_widget(Clear, popup);
     let block = Block::default()

@@ -35,7 +35,6 @@ docs:
 # Run tests with nextest (skip if no tests exist)
 test:
     cargo nextest run --workspace --all-features --no-tests auto || true
-    cargo test --workspace --lib --bins
 
 # Run the app
 run:

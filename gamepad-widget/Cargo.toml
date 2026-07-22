@@ -12,3 +12,6 @@ categories = ["command-line-interface", "visualization"]
 
 [dependencies]
 ratatui = "0.30"
+
+[lints]
+workspace = true

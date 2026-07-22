@@ -14,6 +14,12 @@ pub struct TerminalSession {
 }
 
 impl TerminalSession {
+    /// Enters raw mode and starts a terminal session on the alternate screen.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when raw mode, the alternate screen, or the Ratatui
+    /// terminal cannot be initialized.
     pub fn start() -> Result<Self> {
         enable_raw_mode()?;
         let mut stdout = io::stdout();
@@ -31,6 +37,11 @@ impl TerminalSession {
         }
     }
 
+    /// Draws one frame using the supplied render function.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when Ratatui cannot flush the rendered frame.
     pub fn draw(
         &mut self,
         render: impl FnOnce(&mut ratatui::Frame<'_>),
