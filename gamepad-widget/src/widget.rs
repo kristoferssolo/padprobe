@@ -880,4 +880,36 @@ mod tests {
         assert_eq!(buffer[(54, 24)].symbol(), "╰");
         assert_eq!(buffer[(64, 24)].symbol(), "╯");
     }
+
+    #[test]
+    fn shoulder_art_separates_trigger_and_bumper() {
+        let cluster = ControlCluster::new("Left shoulder")
+            .with_placement(ClusterPlacement::LeftShoulder)
+            .with_control(Control::new("LB", ControlValue::Button { pressed: false }))
+            .with_control(Control::new(
+                "LT",
+                ControlValue::Trigger { value: Some(0.5) },
+            ));
+        let state = GamepadState::new([]);
+        let widget = GamepadWidget::new(&state);
+        let area = Rect::new(0, 0, 9, 6);
+        let mut buffer = Buffer::empty(area);
+
+        render_shoulder(Some(&cluster), 4, 0, &mut buffer, widget);
+        let symbols = buffer
+            .content()
+            .iter()
+            .map(ratatui::buffer::Cell::symbol)
+            .collect::<String>();
+
+        assert!(symbols.contains("LT"));
+        assert!(symbols.contains("LB"));
+        assert!(buffer.content().iter().any(|cell| cell.fg == Color::Cyan));
+        assert!(
+            buffer
+                .content()
+                .iter()
+                .any(|cell| cell.fg == Color::DarkGray)
+        );
+    }
 }
