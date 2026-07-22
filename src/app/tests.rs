@@ -121,6 +121,31 @@ fn event_history_evicts_oldest_entry() {
 
     assert_eq!(app.events.len(), EVENT_CAPACITY);
     assert_eq!(assert_some!(app.events.front()).description, "event 0");
+    assert_eq!(app.evicted_event_count, 1);
+}
+
+#[test]
+fn event_filters_combine_kind_device_and_search() {
+    let mut app = App::new();
+    app.connect(1, metadata("first"));
+    app.connect(2, metadata("second"));
+    app.selected_id = Some(1);
+    app.event_kind_filter = EventKindFilter::Axes;
+    app.event_device_filter = EventDeviceFilter::Selected;
+    app.event_search = "leftstick".to_owned();
+    let visible = EventEntry {
+        sequence: 1,
+        elapsed: Duration::ZERO,
+        device_id: Some(1),
+        description: "AxisChanged(LeftStickX, +0.100)".to_owned(),
+    };
+    let other_device = EventEntry {
+        device_id: Some(2),
+        ..visible.clone()
+    };
+
+    assert!(app.event_is_visible(&visible));
+    assert!(!app.event_is_visible(&other_device));
 }
 
 #[test]

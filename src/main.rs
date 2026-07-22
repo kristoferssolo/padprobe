@@ -3,7 +3,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use gilrs::{EventType, Gilrs};
 use padprobe::{
     analysis::StickSide,
-    app::{App, AppTab, DeviceMetadata},
+    app::{App, AppTab, DeviceMetadata, EventSearchState},
     logging,
     rumble::RumbleTest,
     terminal::{self, TerminalSession},
@@ -119,6 +119,24 @@ fn handle_key(
         return;
     }
 
+    if app.event_search_state == EventSearchState::Open {
+        match key.code {
+            KeyCode::Enter => app.event_search_state = EventSearchState::Closed,
+            KeyCode::Esc => {
+                app.event_search.clear();
+                app.event_search_state = EventSearchState::Closed;
+            }
+            KeyCode::Backspace => {
+                app.event_search.pop();
+            }
+            KeyCode::Char(character) if !key.modifiers.contains(KeyModifiers::CONTROL) => {
+                app.event_search.push(character);
+            }
+            _ => {}
+        }
+        return;
+    }
+
     if handle_diagnostic_key(app, key) {
         return;
     }
@@ -157,6 +175,12 @@ fn handle_key(
         KeyCode::Char('p') => {
             app.toggle_event_scroll();
         }
+        KeyCode::Char('/') => app.event_search_state = EventSearchState::Open,
+        KeyCode::Char('f') => app.cycle_event_kind_filter(),
+        KeyCode::Char('v') => app.toggle_event_device_filter(),
+        KeyCode::Char('c') if app.active_tab == AppTab::Dashboard => app.clear_events(),
+        KeyCode::Up if app.active_tab == AppTab::Dashboard => app.scroll_events_older(),
+        KeyCode::Down if app.active_tab == AppTab::Dashboard => app.scroll_events_newer(),
         KeyCode::Char('x') => app.reset_selected_observations(),
         KeyCode::Tab | KeyCode::Right => app.select_next_tab(),
         KeyCode::BackTab | KeyCode::Left => app.select_previous_tab(),
