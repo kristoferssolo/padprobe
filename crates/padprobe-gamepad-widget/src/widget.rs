@@ -141,10 +141,11 @@ fn stick_lines(
         .into_iter()
         .map(|line| Line::styled(line, style).alignment(Alignment::Center))
         .collect::<Vec<_>>();
+    lines.push(Line::styled(format!("x {x:+.2}  y {y:+.2}"), style).alignment(Alignment::Center));
     lines.push(
         Line::styled(
             format!(
-                "x {x:+.2}  y {y:+.2}  r {magnitude:.2}  {} {}",
+                "r {magnitude:.2}  {} {}",
                 control.label(),
                 if pressed { "●" } else { "○" }
             ),
@@ -277,10 +278,10 @@ fn controller_areas(area: Rect, clusters: &[ControlCluster]) -> Option<Vec<Rect>
                     shoulder_columns[2].width,
                     TOP_HEIGHT,
                 ),
-                ClusterPlacement::LeftStick => top_aligned(body_columns[0], 10),
+                ClusterPlacement::LeftStick => top_aligned(body_columns[0], 11),
                 ClusterPlacement::Face => top_aligned(body_columns[3], 5),
                 ClusterPlacement::DPad => bottom_aligned(body_columns[1], 5),
-                ClusterPlacement::RightStick => bottom_aligned(body_columns[2], 10),
+                ClusterPlacement::RightStick => bottom_aligned(body_columns[2], 11),
                 ClusterPlacement::Flow | ClusterPlacement::Extra => Rect::new(
                     area.x,
                     area.bottom().saturating_sub(EXTRA_HEIGHT),
@@ -444,7 +445,8 @@ mod tests {
 
         let lines = stick_lines(&cluster, Style::default(), Style::default());
 
-        assert_eq!(lines[7].spans[0].content, "x +0.30  y +0.40  r 0.50  L3 ●");
+        assert_eq!(lines[7].spans[0].content, "x +0.30  y +0.40");
+        assert_eq!(lines[8].spans[0].content, "r 0.50  L3 ●");
     }
 
     #[test]
