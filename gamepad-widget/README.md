@@ -1,12 +1,12 @@
 # gamepad-widget
 
 A backend-neutral [Ratatui](https://ratatui.rs/) widget for displaying gamepad
-state as controller-positioned control clusters.
+state as a unified controller overview.
 
 The widget provides:
 
-- semantic placement for shoulders, menu buttons, sticks, D-pad, face buttons,
-  and extra controls;
+- semantic placement for shoulders, menu buttons, sticks, D-pad, and face
+  buttons without nested cluster borders;
 - circular stick gauges with direction, magnitude, coordinates, and click state;
 - diamond layouts for D-pad and face buttons;
 - analog trigger bars;
@@ -42,6 +42,6 @@ let state = GamepadState::new([
 frame.render_widget(GamepadWidget::new(&state), area);
 ```
 
-The semantic controller layout is used when the available area is at least
-88×17 cells. Smaller areas use an ordered responsive grid, so arbitrary control
-clusters remain usable.
+The unified controller layout is used when the available area is at least
+44×21 cells. Smaller areas, or states containing extra unplaced controls, use
+an ordered responsive grid so arbitrary clusters remain visible.
