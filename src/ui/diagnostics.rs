@@ -34,7 +34,7 @@ const NUMBERED_BUTTONS: [Button; 19] = [
 pub(super) fn render_primary_diagnostics(frame: &mut Frame<'_>, app: &App, area: Rect) {
     let columns = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .constraints([Constraint::Percentage(65), Constraint::Percentage(35)])
         .split(area);
     render_sticks(
         frame,
