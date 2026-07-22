@@ -21,6 +21,7 @@ impl GamepadState {
 pub struct ControlCluster {
     title: String,
     controls: Vec<Control>,
+    placement: ClusterPlacement,
 }
 
 impl ControlCluster {
@@ -28,7 +29,14 @@ impl ControlCluster {
         Self {
             title: title.into(),
             controls: Vec::new(),
+            placement: ClusterPlacement::Flow,
         }
+    }
+
+    #[must_use]
+    pub const fn with_placement(mut self, placement: ClusterPlacement) -> Self {
+        self.placement = placement;
+        self
     }
 
     #[must_use]
@@ -46,6 +54,25 @@ impl ControlCluster {
     pub fn controls(&self) -> &[Control] {
         &self.controls
     }
+
+    #[must_use]
+    pub const fn placement(&self) -> ClusterPlacement {
+        self.placement
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ClusterPlacement {
+    #[default]
+    Flow,
+    LeftShoulder,
+    Menu,
+    RightShoulder,
+    LeftStick,
+    Face,
+    DPad,
+    RightStick,
+    Extra,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -102,5 +129,12 @@ mod tests {
         assert_eq!(state.clusters()[0].title(), "Left");
         assert_eq!(state.clusters()[1].title(), "Face");
         assert_eq!(state.clusters()[0].controls()[0].label(), "Stick");
+    }
+
+    #[test]
+    fn cluster_placement_defaults_to_flow() {
+        let cluster = ControlCluster::new("Generic");
+
+        assert_eq!(cluster.placement(), ClusterPlacement::Flow);
     }
 }
