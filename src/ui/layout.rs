@@ -1,22 +1,14 @@
 use ratatui::{
     layout::Rect,
-    style::{Color, Style},
+    style::Color,
     widgets::{Block, Borders},
 };
 
 pub(super) const ACTIVE_BORDER: Color = Color::Cyan;
 pub(super) const WARNING: Color = Color::Yellow;
 
-pub(super) fn focused_block<'a>(title: &'a str, focused: bool) -> Block<'a> {
-    let style = if focused {
-        Style::default().fg(ACTIVE_BORDER)
-    } else {
-        Style::default()
-    };
-    Block::default()
-        .borders(Borders::ALL)
-        .title(title)
-        .border_style(style)
+pub(super) fn panel_block(title: &str) -> Block<'_> {
+    Block::default().borders(Borders::ALL).title(title)
 }
 
 pub(super) fn centered_rect(width: u16, height: u16, area: Rect) -> Rect {
