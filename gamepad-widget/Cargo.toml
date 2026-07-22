@@ -1,5 +1,5 @@
 [package]
-name = "padprobe-gamepad-widget"
+name = "gamepad-widget"
 version = "0.1.0"
 edition = "2024"
 authors = ["Kristofers Solo <dev@kristofers.xyz>"]

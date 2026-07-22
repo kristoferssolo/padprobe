@@ -1,7 +1,5 @@
+use gamepad_widget::{ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState};
 use gilrs::{Axis, Button};
-use padprobe_gamepad_widget::{
-    ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState,
-};
 
 use crate::app::DeviceState;
 
