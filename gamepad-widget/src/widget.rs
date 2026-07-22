@@ -787,4 +787,22 @@ mod tests {
         assert!(symbols.contains('─'));
         assert!(!symbols.contains('┌'));
     }
+
+    #[test]
+    fn controller_shell_has_shoulders_body_notch_and_grips() {
+        let area = Rect::new(0, 0, 70, 23);
+        let mut buffer = Buffer::empty(area);
+
+        render_shell(area, &mut buffer, Style::default());
+
+        assert_eq!(buffer[(10, 2)].symbol(), "╭");
+        assert_eq!(buffer[(59, 2)].symbol(), "╮");
+        assert_eq!(buffer[(1, 7)].symbol(), "│");
+        assert_eq!(buffer[(18, 17)].symbol(), "╭");
+        assert_eq!(buffer[(51, 17)].symbol(), "╮");
+        assert_eq!(buffer[(5, 20)].symbol(), "╰");
+        assert_eq!(buffer[(15, 20)].symbol(), "╯");
+        assert_eq!(buffer[(54, 20)].symbol(), "╰");
+        assert_eq!(buffer[(64, 20)].symbol(), "╯");
+    }
 }
