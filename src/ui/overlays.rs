@@ -15,6 +15,8 @@ pub(super) fn render_help(frame: &mut Frame<'_>, area: Rect) {
         Line::from(""),
         Line::from("  q / Ctrl-C       Quit"),
         Line::from("  d                 Open controller selector"),
+        Line::from("  Tab / Shift-Tab   Change diagnostic tab"),
+        Line::from("  1–5               Select a diagnostic tab"),
         Line::from("  ↑ ↓ / j k        Select a connected controller"),
         Line::from("  r                 Run a 300 ms rumble test"),
         Line::from("  x                 Reset selected-device observations"),

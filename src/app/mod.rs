@@ -11,6 +11,37 @@ use std::{
 pub const EVENT_CAPACITY: usize = 256;
 const FIRST_EVENT_SEQUENCE: u64 = 1;
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum AppTab {
+    #[default]
+    Dashboard,
+    Drift,
+    Range,
+    Controls,
+    Timing,
+}
+
+impl AppTab {
+    const ALL: [Self; 5] = [
+        Self::Dashboard,
+        Self::Drift,
+        Self::Range,
+        Self::Controls,
+        Self::Timing,
+    ];
+
+    #[must_use]
+    pub const fn title(self) -> &'static str {
+        match self {
+            Self::Dashboard => "Dashboard",
+            Self::Drift => "Drift",
+            Self::Range => "Range",
+            Self::Controls => "Controls",
+            Self::Timing => "Timing",
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct EventEntry {
     pub sequence: u64,
@@ -29,6 +60,7 @@ pub struct App {
     pub event_scroll_anchor: Option<u64>,
     pub device_selector_visible: bool,
     pub help_visible: bool,
+    pub active_tab: AppTab,
     pub should_quit: bool,
     pub status: String,
     next_event_sequence: u64,
@@ -52,6 +84,7 @@ impl App {
             event_scroll_anchor: None,
             device_selector_visible: false,
             help_visible: false,
+            active_tab: AppTab::default(),
             should_quit: false,
             status: "gilrs backend ready".to_owned(),
             next_event_sequence: FIRST_EVENT_SEQUENCE,
@@ -173,6 +206,14 @@ impl App {
         self.record_notice_for(Some(id), "Session observations reset");
     }
 
+    pub fn select_next_tab(&mut self) {
+        self.move_tab(1);
+    }
+
+    pub fn select_previous_tab(&mut self) {
+        self.move_tab(-1);
+    }
+
     #[must_use]
     #[inline]
     pub fn selected_device(&self) -> Option<(usize, &DeviceState)> {
@@ -205,6 +246,21 @@ impl App {
 
         self.selected_id = Some(connected[next]);
         self.status = format!("Selected {}", self.devices[&connected[next]].metadata.name);
+    }
+
+    fn move_tab(&mut self, direction: isize) {
+        let current = AppTab::ALL
+            .iter()
+            .position(|tab| *tab == self.active_tab)
+            .unwrap_or_default();
+        let next = match direction {
+            -1 if current == 0 => AppTab::ALL.len() - 1,
+            -1 => current - 1,
+            1 => (current + 1) % AppTab::ALL.len(),
+            _ => current,
+        };
+        self.active_tab = AppTab::ALL[next];
+        self.status = format!("{} diagnostics", self.active_tab.title());
     }
 
     fn push_event(&mut self, device_id: Option<usize>, description: String) {
