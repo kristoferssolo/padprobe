@@ -3,7 +3,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use gilrs::{EventType, Gilrs};
 use padprobe::{
     analysis::StickSide,
-    app::{App, DeviceMetadata},
+    app::{App, AppTab, DeviceMetadata},
     logging,
     rumble::RumbleTest,
     terminal::{self, TerminalSession},
@@ -119,14 +119,15 @@ fn handle_key(
         return;
     }
 
+    if handle_diagnostic_key(app, key) {
+        return;
+    }
+
     match key.code {
         KeyCode::Char('q') => app.should_quit = true,
         KeyCode::Char('?') => app.help_visible = true,
         KeyCode::Char('d') => app.open_device_selector(),
         KeyCode::Esc => {
-            if app.active_tab == padprobe::app::AppTab::Drift {
-                app.cancel_drift_test();
-            }
             if let Some(test) = rumble_test.take() {
                 let device_id = test.device_id();
                 let message = match test.cancel() {
@@ -135,9 +136,6 @@ fn handle_key(
                 };
                 app.record_notice_for(Some(device_id), message);
             }
-        }
-        KeyCode::Char('r') if app.active_tab == padprobe::app::AppTab::Drift => {
-            app.select_drift_stick(StickSide::Right);
         }
         KeyCode::Char('r') => {
             if let Some(test) = rumble_test.take()
@@ -162,17 +160,26 @@ fn handle_key(
         KeyCode::Char('x') => app.reset_selected_observations(),
         KeyCode::Tab | KeyCode::Right => app.select_next_tab(),
         KeyCode::BackTab | KeyCode::Left => app.select_previous_tab(),
-        KeyCode::Char('1') => app.active_tab = padprobe::app::AppTab::Dashboard,
-        KeyCode::Char('2') => app.active_tab = padprobe::app::AppTab::Drift,
-        KeyCode::Char('3') => app.active_tab = padprobe::app::AppTab::Range,
-        KeyCode::Char('4') => app.active_tab = padprobe::app::AppTab::Controls,
-        KeyCode::Char('5') => app.active_tab = padprobe::app::AppTab::Timing,
-        KeyCode::Char('l') if app.active_tab == padprobe::app::AppTab::Drift => {
-            app.select_drift_stick(StickSide::Left);
-        }
-        KeyCode::Char('s') if app.active_tab == padprobe::app::AppTab::Drift => {
-            app.start_drift_test(Instant::now());
-        }
+        KeyCode::Char('1') => app.active_tab = AppTab::Dashboard,
+        KeyCode::Char('2') => app.active_tab = AppTab::Drift,
+        KeyCode::Char('3') => app.active_tab = AppTab::Range,
+        KeyCode::Char('4') => app.active_tab = AppTab::Controls,
+        KeyCode::Char('5') => app.active_tab = AppTab::Timing,
         _ => {}
     }
+}
+
+fn handle_diagnostic_key(app: &mut App, key: KeyEvent) -> bool {
+    match (app.active_tab, key.code) {
+        (AppTab::Drift, KeyCode::Char('l')) => app.select_drift_stick(StickSide::Left),
+        (AppTab::Drift, KeyCode::Char('r')) => app.select_drift_stick(StickSide::Right),
+        (AppTab::Drift, KeyCode::Char('s')) => app.start_drift_test(Instant::now()),
+        (AppTab::Drift, KeyCode::Esc) => app.cancel_drift_test(),
+        (AppTab::Range, KeyCode::Char('l')) => app.select_range_stick(StickSide::Left),
+        (AppTab::Range, KeyCode::Char('r')) => app.select_range_stick(StickSide::Right),
+        (AppTab::Range, KeyCode::Char('s')) => app.toggle_range_test(),
+        (AppTab::Range, KeyCode::Esc) => app.cancel_range_test(),
+        _ => return false,
+    }
+    true
 }
