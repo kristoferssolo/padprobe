@@ -159,6 +159,20 @@ impl App {
         self.push_event(device_id, description);
     }
 
+    pub fn reset_selected_observations(&mut self) {
+        let Some(id) = self.selected_id else {
+            self.record_notice("No controller selected");
+            return;
+        };
+        let Some(device) = self.devices.get_mut(&id) else {
+            self.record_notice("Selected controller is unavailable");
+            return;
+        };
+
+        device.reset_observations();
+        self.record_notice_for(Some(id), "Session observations reset");
+    }
+
     #[must_use]
     #[inline]
     pub fn selected_device(&self) -> Option<(usize, &DeviceState)> {

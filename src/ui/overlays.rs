@@ -17,6 +17,7 @@ pub(super) fn render_help(frame: &mut Frame<'_>, area: Rect) {
         Line::from("  d                 Open controller selector"),
         Line::from("  ↑ ↓ / j k        Select a connected controller"),
         Line::from("  r                 Run a 300 ms rumble test"),
+        Line::from("  x                 Reset selected-device observations"),
         Line::from("  p                 Pause event auto-scrolling"),
         Line::from("  Esc               Cancel rumble / close help"),
         Line::from("  ?                 Close this help"),

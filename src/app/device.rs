@@ -60,6 +60,13 @@ impl AxisState {
         self.maximum = self.maximum.max(value);
         self.changes += 1;
     }
+
+    #[inline]
+    pub(super) const fn reset_observations(&mut self) {
+        self.minimum = self.current;
+        self.maximum = self.current;
+        self.changes = 0;
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -115,6 +122,14 @@ impl DeviceState {
         self.buttons.clear();
         self.button_values.clear();
         self.axes.clear();
+        self.left_stick_trace.clear();
+        self.right_stick_trace.clear();
+    }
+
+    pub(super) fn reset_observations(&mut self) {
+        self.axes
+            .values_mut()
+            .for_each(AxisState::reset_observations);
         self.left_stick_trace.clear();
         self.right_stick_trace.clear();
     }
