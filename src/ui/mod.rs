@@ -6,6 +6,7 @@ mod gamepad;
 mod layout;
 mod live_state;
 mod overlays;
+mod tabs;
 
 use self::{
     devices::render_device_selector,
@@ -14,6 +15,7 @@ use self::{
     footer::render_footer,
     live_state::render_live_state,
     overlays::render_help,
+    tabs::{render_placeholder, render_tabs},
 };
 use crate::app::App;
 use ratatui::{
@@ -39,22 +41,35 @@ pub fn render(frame: &mut Frame<'_>, app: &App) {
 }
 
 fn render_full(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    if area.width >= 96 && area.height >= 26 {
-        render_dashboard(frame, app, area);
-        return;
-    }
-
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
+            Constraint::Length(1),
             Constraint::Min(10),
-            Constraint::Length(cmp::min(6, area.height / 4)),
             Constraint::Length(1),
         ])
         .split(area);
-    render_live_state(frame, app, vertical[0]);
-    render_events(frame, app, vertical[1]);
+    render_tabs(frame, app, vertical[0]);
     render_footer(frame, app, vertical[2]);
+
+    if app.active_tab != crate::app::AppTab::Dashboard {
+        render_placeholder(frame, app, vertical[1]);
+        return;
+    }
+
+    if area.width >= 96 && area.height >= 26 {
+        render_dashboard(frame, app, vertical[1]);
+    } else {
+        let content = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Min(10),
+                Constraint::Length(cmp::min(6, vertical[1].height / 4)),
+            ])
+            .split(vertical[1]);
+        render_live_state(frame, app, content[0]);
+        render_events(frame, app, content[1]);
+    }
 }
 
 fn render_dashboard(frame: &mut Frame<'_>, app: &App, area: Rect) {
@@ -63,11 +78,6 @@ fn render_dashboard(frame: &mut Frame<'_>, app: &App, area: Rect) {
     render_primary_diagnostics(frame, app, primary);
     render_raw_data(frame, app, raw);
     render_events(frame, app, events);
-    render_footer(
-        frame,
-        app,
-        Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1),
-    );
 }
 
 fn dashboard_sections(area: Rect) -> [Rect; 4] {

@@ -163,6 +163,16 @@ fn device_selector_visibility_is_explicit() {
 }
 
 #[test]
+fn tab_navigation_wraps_in_both_directions() {
+    let mut app = App::new();
+
+    app.select_previous_tab();
+    assert_eq!(app.active_tab, AppTab::Timing);
+    app.select_next_tab();
+    assert_eq!(app.active_tab, AppTab::Dashboard);
+}
+
+#[test]
 fn stick_trace_records_paired_axis_positions() {
     let mut app = App::new();
     app.connect(1, metadata("controller"));

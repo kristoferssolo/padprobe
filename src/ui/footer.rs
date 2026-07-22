@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 pub(super) fn render_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    let controls = "q quit | d devices | x reset | r rumble | p pause | ? help";
+    let controls = "q quit | ⇥ tab | d devices | x reset | r rumble | p pause | ? help";
     let width = usize::from(area.width);
     let status_room = width.saturating_sub(controls.len() + 3);
     let status = if status_room > 8 {

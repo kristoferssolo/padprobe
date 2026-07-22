@@ -152,6 +152,13 @@ fn handle_key(
             app.toggle_event_scroll();
         }
         KeyCode::Char('x') => app.reset_selected_observations(),
+        KeyCode::Tab | KeyCode::Right => app.select_next_tab(),
+        KeyCode::BackTab | KeyCode::Left => app.select_previous_tab(),
+        KeyCode::Char('1') => app.active_tab = padprobe::app::AppTab::Dashboard,
+        KeyCode::Char('2') => app.active_tab = padprobe::app::AppTab::Drift,
+        KeyCode::Char('3') => app.active_tab = padprobe::app::AppTab::Range,
+        KeyCode::Char('4') => app.active_tab = padprobe::app::AppTab::Controls,
+        KeyCode::Char('5') => app.active_tab = padprobe::app::AppTab::Timing,
         _ => {}
     }
 }
