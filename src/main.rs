@@ -2,6 +2,7 @@ use color_eyre::eyre::{Result, eyre};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use gilrs::{EventType, Gilrs};
 use padprobe::{
+    analysis::StickSide,
     app::{App, DeviceMetadata},
     logging,
     rumble::RumbleTest,
@@ -69,6 +70,7 @@ fn main() -> Result<()> {
         if let Some(test) = rumble_test.take_if(|test| test.is_finished()) {
             app.record_notice_for(Some(test.device_id()), "Rumble test completed");
         }
+        app.update_diagnostics(Instant::now());
 
         if last_frame.elapsed() >= FRAME_INTERVAL {
             terminal.draw(|frame| ui::render(frame, &app))?;
@@ -122,6 +124,9 @@ fn handle_key(
         KeyCode::Char('?') => app.help_visible = true,
         KeyCode::Char('d') => app.open_device_selector(),
         KeyCode::Esc => {
+            if app.active_tab == padprobe::app::AppTab::Drift {
+                app.cancel_drift_test();
+            }
             if let Some(test) = rumble_test.take() {
                 let device_id = test.device_id();
                 let message = match test.cancel() {
@@ -130,6 +135,9 @@ fn handle_key(
                 };
                 app.record_notice_for(Some(device_id), message);
             }
+        }
+        KeyCode::Char('r') if app.active_tab == padprobe::app::AppTab::Drift => {
+            app.select_drift_stick(StickSide::Right);
         }
         KeyCode::Char('r') => {
             if let Some(test) = rumble_test.take()
@@ -159,6 +167,12 @@ fn handle_key(
         KeyCode::Char('3') => app.active_tab = padprobe::app::AppTab::Range,
         KeyCode::Char('4') => app.active_tab = padprobe::app::AppTab::Controls,
         KeyCode::Char('5') => app.active_tab = padprobe::app::AppTab::Timing,
+        KeyCode::Char('l') if app.active_tab == padprobe::app::AppTab::Drift => {
+            app.select_drift_stick(StickSide::Left);
+        }
+        KeyCode::Char('s') if app.active_tab == padprobe::app::AppTab::Drift => {
+            app.start_drift_test(Instant::now());
+        }
         _ => {}
     }
 }

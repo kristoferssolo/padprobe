@@ -1,6 +1,7 @@
 mod device;
 #[cfg(test)]
 mod tests;
+use crate::analysis::{DriftTest, StickSide};
 pub use device::{AxisState, DeviceMetadata, DeviceState, StickTrace};
 use gilrs::{Axis, EventType};
 use std::{
@@ -63,6 +64,7 @@ pub struct App {
     pub active_tab: AppTab,
     pub should_quit: bool,
     pub status: String,
+    pub drift_test: DriftTest,
     next_event_sequence: u64,
 }
 
@@ -87,6 +89,7 @@ impl App {
             active_tab: AppTab::default(),
             should_quit: false,
             status: "gilrs backend ready".to_owned(),
+            drift_test: DriftTest::default(),
             next_event_sequence: FIRST_EVENT_SEQUENCE,
         }
     }
@@ -124,6 +127,10 @@ impl App {
             format!("{name} disconnected")
         };
         self.push_event(Some(id), "Disconnected".to_owned());
+        if self.drift_test.device_id() == Some(id) {
+            self.drift_test.cancel();
+            self.record_notice_for(Some(id), "Drift test cancelled: controller disconnected");
+        }
     }
 
     pub fn apply_controller_event(&mut self, id: usize, event: &EventType) {
@@ -214,6 +221,50 @@ impl App {
         self.move_tab(-1);
     }
 
+    pub fn select_drift_stick(&mut self, side: StickSide) {
+        self.drift_test.select_side(side);
+        self.status = format!("{} stick selected for drift test", side.label());
+    }
+
+    pub fn start_drift_test(&mut self, now: Instant) {
+        let Some((id, device)) = self.selected_device() else {
+            self.record_notice("Drift test unavailable: no controller selected");
+            return;
+        };
+        if !device.connected {
+            self.record_notice_for(Some(id), "Drift test unavailable: controller disconnected");
+            return;
+        }
+        self.drift_test.start(id, now);
+        self.record_notice_for(
+            Some(id),
+            format!(
+                "{} stick drift test starting — release the stick",
+                self.drift_test.side().label()
+            ),
+        );
+    }
+
+    pub fn cancel_drift_test(&mut self) {
+        if self.drift_test.device_id().is_some() {
+            self.drift_test.cancel();
+            self.record_notice("Drift test cancelled");
+        }
+    }
+
+    pub fn update_diagnostics(&mut self, now: Instant) {
+        let side = self.drift_test.side();
+        let position = self.drift_test.device_id().and_then(|id| {
+            self.devices
+                .get(&id)
+                .filter(|device| device.connected)
+                .map(|device| stick_position(device, side))
+        });
+        if self.drift_test.tick(now, position) {
+            self.record_notice("Drift test completed");
+        }
+    }
+
     #[must_use]
     #[inline]
     pub fn selected_device(&self) -> Option<(usize, &DeviceState)> {
@@ -275,6 +326,17 @@ impl App {
         });
         self.next_event_sequence += 1;
     }
+}
+
+fn stick_position(device: &DeviceState, side: StickSide) -> (f32, f32) {
+    let (x_axis, y_axis) = match side {
+        StickSide::Left => (Axis::LeftStickX, Axis::LeftStickY),
+        StickSide::Right => (Axis::RightStickX, Axis::RightStickY),
+    };
+    (
+        device.axes.get(&x_axis).map_or(0.0, |axis| axis.current),
+        device.axes.get(&y_axis).map_or(0.0, |axis| axis.current),
+    )
 }
 
 #[inline]
