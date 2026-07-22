@@ -180,7 +180,7 @@ fn axis_value(device: &DeviceState, axis: Axis) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::{AxisState, DeviceMetadata};
+    use crate::app::{AxisState, DeviceMetadata, StickTrace};
     use std::collections::HashMap;
 
     fn device() -> DeviceState {
@@ -198,6 +198,8 @@ mod tests {
             buttons: HashMap::new(),
             button_values: HashMap::new(),
             axes: HashMap::new(),
+            left_stick_trace: StickTrace::default(),
+            right_stick_trace: StickTrace::default(),
         }
     }
 
