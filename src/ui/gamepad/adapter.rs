@@ -123,8 +123,9 @@ fn trigger_control(label: &str, device: &DeviceState, axis: Axis, button: Button
                 .get(&axis)
                 .map(|state| (state.current + 1.0) / 2.0)
         })
-        .or_else(|| device.buttons.get(&button).copied().map(f32::from));
-    Control::new(label, ControlValue::Trigger { value })
+        .or_else(|| device.buttons.get(&button).copied().map(f32::from))
+        .unwrap_or_default();
+    Control::new(label, ControlValue::Trigger { value: Some(value) })
 }
 
 fn dpad_control(
@@ -263,6 +264,16 @@ mod tests {
         assert_eq!(
             state.clusters()[0].controls()[1].value(),
             ControlValue::Trigger { value: Some(0.37) }
+        );
+    }
+
+    #[test]
+    fn unobserved_trigger_defaults_to_zero() {
+        let state = gamepad_state(&device());
+
+        assert_eq!(
+            state.clusters()[0].controls()[1].value(),
+            ControlValue::Trigger { value: Some(0.0) }
         );
     }
 
