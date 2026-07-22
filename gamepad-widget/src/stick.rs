@@ -2,12 +2,13 @@ use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Rect},
     style::{Color, Modifier, Style},
+    symbols::Marker,
     text::Line,
-    widgets::{Paragraph, Widget},
+    widgets::{
+        Paragraph, Widget,
+        canvas::{Canvas, Circle, Line as CanvasLine},
+    },
 };
-
-const BRAILLE_BASE: u32 = 0x2800;
-const DOT_BITS: [[u8; 2]; 4] = [[0x01, 0x08], [0x02, 0x10], [0x04, 0x20], [0x40, 0x80]];
 
 /// A high-resolution analog-stick gauge rendered with Unicode Braille cells.
 #[derive(Clone, Copy, Debug)]
@@ -143,49 +144,23 @@ fn render_gate(
         return;
     }
 
-    let pixel_width = usize::from(area.width) * 2;
-    let pixel_height = usize::from(area.height) * 4;
-    let center_x = (pixel_width.saturating_sub(1)) as f32 / 2.0;
-    let center_y = (pixel_height.saturating_sub(1)) as f32 / 2.0;
-    let radius_x = center_x.max(1.0);
-    let radius_y = center_y.max(1.0);
-    let ring_width = 1.5 / radius_x.min(radius_y);
-    let mut cells = vec![0_u8; usize::from(area.width) * usize::from(area.height)];
+    let gate_color = gate_style.fg.unwrap_or(Color::Reset);
+    Canvas::default()
+        .marker(Marker::Braille)
+        .x_bounds([-1.1, 1.1])
+        .y_bounds([-1.1, 1.1])
+        .paint(|context| {
+            context.draw(&Circle::new(0.0, 0.0, 1.0, gate_color));
+            context.draw(&CanvasLine::new(-1.0, 0.0, 1.0, 0.0, gate_color));
+            context.draw(&CanvasLine::new(0.0, -1.0, 0.0, 1.0, gate_color));
+        })
+        .render(area, buffer);
 
-    for pixel_y in 0..pixel_height {
-        for pixel_x in 0..pixel_width {
-            let normalized_x = (pixel_x as f32 - center_x) / radius_x;
-            let normalized_y = (pixel_y as f32 - center_y) / radius_y;
-            let radius = normalized_x.hypot(normalized_y);
-            let on_ring = (radius - 1.0).abs() <= ring_width;
-            let on_crosshair = radius <= 1.0
-                && ((pixel_x as f32 - center_x).abs() < 0.5
-                    || (pixel_y as f32 - center_y).abs() < 0.5);
-            if on_ring || on_crosshair {
-                let cell_x = pixel_x / 2;
-                let cell_y = pixel_y / 4;
-                cells[cell_y * usize::from(area.width) + cell_x] |=
-                    DOT_BITS[pixel_y % 4][pixel_x % 2];
-            }
-        }
-    }
-
-    for (index, dots) in cells.into_iter().enumerate().filter(|(_, dots)| *dots != 0) {
-        let cell_x = u16::try_from(index % usize::from(area.width)).unwrap_or_default();
-        let cell_y = u16::try_from(index / usize::from(area.width)).unwrap_or_default();
-        let symbol = char::from_u32(BRAILLE_BASE + u32::from(dots)).unwrap_or('\u{2800}');
-        buffer[(area.x + cell_x, area.y + cell_y)]
-            .set_char(symbol)
-            .set_style(gate_style);
-    }
-
-    let marker_x = center_x + x.clamp(-1.0, 1.0) * radius_x * 0.82;
-    let marker_y = center_y - y.clamp(-1.0, 1.0) * radius_y * 0.82;
-    let marker_cell_x = u16::try_from((marker_x.round() as usize) / 2).unwrap_or_default();
-    let marker_cell_y = u16::try_from((marker_y.round() as usize) / 4).unwrap_or_default();
+    let marker_x = f32::from(area.width.saturating_sub(1)) * (0.5 + x.clamp(-1.0, 1.0) * 0.4);
+    let marker_y = f32::from(area.height.saturating_sub(1)) * (0.5 - y.clamp(-1.0, 1.0) * 0.4);
     buffer[(
-        area.x + marker_cell_x.min(area.width - 1),
-        area.y + marker_cell_y.min(area.height - 1),
+        area.x + marker_x.round() as u16,
+        area.y + marker_y.round() as u16,
     )]
         .set_char('●')
         .set_style(marker_style);
