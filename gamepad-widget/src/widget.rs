@@ -27,6 +27,7 @@ pub struct GamepadWidget<'state> {
 impl<'state> GamepadWidget<'state> {
     /// Creates a widget that borrows the gamepad state to render.
     #[must_use]
+    #[inline]
     pub fn new(state: &'state GamepadState) -> Self {
         Self {
             state,
@@ -40,6 +41,7 @@ impl<'state> GamepadWidget<'state> {
 
     /// Sets the style used for the controller outline and cluster borders.
     #[must_use]
+    #[inline]
     pub const fn border_style(mut self, style: Style) -> Self {
         self.border_style = style;
         self
@@ -47,6 +49,7 @@ impl<'state> GamepadWidget<'state> {
 
     /// Sets the style used for controls that are not active.
     #[must_use]
+    #[inline]
     pub const fn idle_style(mut self, style: Style) -> Self {
         self.idle_style = style;
         self
@@ -54,6 +57,7 @@ impl<'state> GamepadWidget<'state> {
 
     /// Sets the style used for pressed buttons and active analog controls.
     #[must_use]
+    #[inline]
     pub const fn active_style(mut self, style: Style) -> Self {
         self.active_style = style;
         self
@@ -67,7 +71,7 @@ impl Widget for GamepadWidget<'_> {
             return;
         }
 
-        if controller_areas(area, clusters).is_some() {
+        if can_render_controller(area, clusters) {
             render_controller_art(area, buffer, self);
             return;
         }
@@ -227,6 +231,7 @@ fn draw_horizontal(buffer: &mut Buffer, start: u16, end: u16, y: u16, style: Sty
     }
 }
 
+#[inline]
 fn cluster_at(state: &GamepadState, placement: ClusterPlacement) -> Option<&ControlCluster> {
     state
         .clusters()
@@ -393,6 +398,7 @@ fn control_span(control: &Control, idle_style: Style, active_style: Style) -> Sp
     )
 }
 
+#[inline]
 fn control_active(control: &Control) -> bool {
     match control.value() {
         ControlValue::Button { pressed } => pressed,
@@ -489,6 +495,10 @@ fn stick_lines(
     lines
 }
 
+#[allow(
+    clippy::cast_possible_truncation,
+    reason = "clamped stick coordinates map to fixed, in-bounds plot indices"
+)]
 fn stick_plot(x: f32, y: f32) -> Vec<String> {
     let mut rows = [
         "  ╭───────╮  ".chars().collect::<Vec<_>>(),
@@ -558,91 +568,39 @@ fn stick_direction(x: f32, y: f32) -> char {
     }
 }
 
-fn controller_areas(area: Rect, clusters: &[ControlCluster]) -> Option<Vec<Rect>> {
+#[inline]
+fn can_render_controller(area: Rect, clusters: &[ControlCluster]) -> bool {
     const MIN_WIDTH: u16 = 48;
     const MIN_HEIGHT: u16 = 25;
-    const TOP_HEIGHT: u16 = 4;
 
-    let has_unplaced_cluster = clusters.iter().any(|cluster| {
-        matches!(
-            cluster.placement(),
-            ClusterPlacement::Flow | ClusterPlacement::Extra
-        )
-    });
-    if area.width < MIN_WIDTH || area.height < MIN_HEIGHT || has_unplaced_cluster {
-        return None;
-    }
-
-    let shoulder_columns = equal_columns(area, 3);
-    let body_y = area.y + TOP_HEIGHT;
-    let body_columns = equal_columns(
-        Rect::new(
-            area.x,
-            body_y,
-            area.width,
-            area.bottom().saturating_sub(body_y),
-        ),
-        2,
-    );
-
-    clusters
-        .iter()
-        .map(|cluster| {
-            let rect = match cluster.placement() {
-                ClusterPlacement::LeftShoulder => Rect::new(
-                    shoulder_columns[0].x,
-                    area.y,
-                    shoulder_columns[0].width,
-                    TOP_HEIGHT,
-                ),
-                ClusterPlacement::Menu => Rect::new(
-                    shoulder_columns[1].x,
-                    area.y,
-                    shoulder_columns[1].width,
-                    TOP_HEIGHT,
-                ),
-                ClusterPlacement::RightShoulder => Rect::new(
-                    shoulder_columns[2].x,
-                    area.y,
-                    shoulder_columns[2].width,
-                    TOP_HEIGHT,
-                ),
-                ClusterPlacement::LeftStick => {
-                    Rect::new(body_columns[0].x, body_y, body_columns[0].width, 11)
-                }
-                ClusterPlacement::Face => {
-                    Rect::new(body_columns[1].x, body_y, body_columns[1].width, 5)
-                }
-                ClusterPlacement::DPad => {
-                    Rect::new(body_columns[0].x, body_y + 11, body_columns[0].width, 5)
-                }
-                ClusterPlacement::RightStick => {
-                    Rect::new(body_columns[1].x, body_y + 6, body_columns[1].width, 11)
-                }
-                ClusterPlacement::Flow | ClusterPlacement::Extra => return None,
-            };
-            (!rect.is_empty()).then_some(rect)
+    area.width >= MIN_WIDTH
+        && area.height >= MIN_HEIGHT
+        && clusters.iter().enumerate().all(|(index, cluster)| {
+            let placement = cluster.placement();
+            !matches!(placement, ClusterPlacement::Flow | ClusterPlacement::Extra)
+                && cluster_fits_controller_art(cluster)
+                && !clusters[..index]
+                    .iter()
+                    .any(|previous| previous.placement() == placement)
         })
-        .collect()
 }
 
-fn equal_columns(area: Rect, count: usize) -> Vec<Rect> {
-    let gaps = u16::try_from(count.saturating_sub(1)).unwrap_or(u16::MAX);
-    let usable_width = area.width.saturating_sub(gaps);
-    let count = u16::try_from(count).unwrap_or(1);
-    let base_width = usable_width / count;
-
-    (0..count)
-        .map(|index| {
-            let x = area.x + index * (base_width + 1);
-            let width = if index + 1 == count {
-                area.right().saturating_sub(x)
-            } else {
-                base_width
-            };
-            Rect::new(x, area.y, width, area.height)
-        })
-        .collect()
+#[inline]
+fn cluster_fits_controller_art(cluster: &ControlCluster) -> bool {
+    match cluster.placement() {
+        ClusterPlacement::LeftStick | ClusterPlacement::RightStick => {
+            matches!(
+                cluster.controls(),
+                [control] if matches!(control.value(), ControlValue::Stick { .. })
+            )
+        }
+        ClusterPlacement::DPad | ClusterPlacement::Face => cluster.controls().len() <= 4,
+        ClusterPlacement::Flow
+        | ClusterPlacement::LeftShoulder
+        | ClusterPlacement::Menu
+        | ClusterPlacement::RightShoulder
+        | ClusterPlacement::Extra => true,
+    }
 }
 
 fn grid_areas(area: Rect, item_count: usize) -> Vec<Rect> {
@@ -793,40 +751,18 @@ mod tests {
     }
 
     #[test]
-    fn semantic_layout_matches_controller_geometry() {
-        let clusters = [
-            ControlCluster::new("Left stick").with_placement(ClusterPlacement::LeftStick),
-            ControlCluster::new("D-pad").with_placement(ClusterPlacement::DPad),
-            ControlCluster::new("Right stick").with_placement(ClusterPlacement::RightStick),
-            ControlCluster::new("Face").with_placement(ClusterPlacement::Face),
-        ];
-
-        let areas = controller_areas(Rect::new(0, 0, 100, 25), &clusters)
-            .expect("wide area should use controller layout");
-
-        assert_eq!(areas[0].x, areas[1].x);
-        assert!(areas[0].x < areas[2].x);
-        assert_eq!(areas[2].x, areas[3].x);
-        assert!(areas[0].y < areas[1].y);
-        assert!(areas[3].y < areas[2].y);
-    }
-
-    #[test]
     fn semantic_layout_falls_back_in_small_areas() {
         let clusters =
             [ControlCluster::new("Left stick").with_placement(ClusterPlacement::LeftStick)];
 
-        assert!(controller_areas(Rect::new(0, 0, 60, 12), &clusters).is_none());
+        assert!(!can_render_controller(Rect::new(0, 0, 60, 12), &clusters));
     }
 
     #[test]
-    fn semantic_layout_reserves_space_for_menu_controls() {
+    fn semantic_layout_accepts_standard_placements() {
         let clusters = [ControlCluster::new("Menu").with_placement(ClusterPlacement::Menu)];
 
-        let areas = controller_areas(Rect::new(0, 0, 100, 25), &clusters)
-            .expect("standard area should use controller layout");
-
-        assert_eq!(areas[0].height, 4);
+        assert!(can_render_controller(Rect::new(0, 0, 100, 25), &clusters));
     }
 
     #[test]
@@ -836,7 +772,29 @@ mod tests {
             ControlCluster::new("Extra").with_placement(ClusterPlacement::Extra),
         ];
 
-        assert!(controller_areas(Rect::new(0, 0, 100, 22), &clusters).is_none());
+        assert!(!can_render_controller(Rect::new(0, 0, 100, 25), &clusters));
+    }
+
+    #[test]
+    fn semantic_layout_does_not_hide_duplicate_placements() {
+        let clusters = [
+            ControlCluster::new("First").with_placement(ClusterPlacement::LeftStick),
+            ControlCluster::new("Second").with_placement(ClusterPlacement::LeftStick),
+        ];
+
+        assert!(!can_render_controller(Rect::new(0, 0, 100, 25), &clusters));
+    }
+
+    #[test]
+    fn semantic_layout_does_not_hide_malformed_stick_cluster() {
+        let clusters = [ControlCluster::new("Left stick")
+            .with_placement(ClusterPlacement::LeftStick)
+            .with_control(Control::new(
+                "unexpected",
+                ControlValue::Button { pressed: false },
+            ))];
+
+        assert!(!can_render_controller(Rect::new(0, 0, 100, 25), &clusters));
     }
 
     #[test]

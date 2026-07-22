@@ -28,6 +28,7 @@ pub struct StickGauge<'label> {
 impl<'label> StickGauge<'label> {
     /// Creates a gauge for a normalized stick position.
     #[must_use]
+    #[inline]
     pub fn new(label: &'label str, x: f32, y: f32) -> Self {
         Self {
             label,
@@ -47,6 +48,7 @@ impl<'label> StickGauge<'label> {
 
     /// Adds the stick-click control to the gauge summary.
     #[must_use]
+    #[inline]
     pub const fn button(mut self, label: &'label str, pressed: bool) -> Self {
         self.button = Some((label, pressed));
         self
@@ -54,6 +56,7 @@ impl<'label> StickGauge<'label> {
 
     /// Adds an analysis metric below the stick values.
     #[must_use]
+    #[inline]
     pub const fn metric(mut self, metric: &'label str) -> Self {
         self.metric = Some(metric);
         self
@@ -61,6 +64,7 @@ impl<'label> StickGauge<'label> {
 
     /// Adds normalized session points to the stick plot.
     #[must_use]
+    #[inline]
     pub const fn trace(mut self, points: &'label [(f64, f64)]) -> Self {
         self.trace = points;
         self
@@ -68,6 +72,7 @@ impl<'label> StickGauge<'label> {
 
     /// Sets the style used for the gate and its crosshair.
     #[must_use]
+    #[inline]
     pub const fn gate_style(mut self, style: Style) -> Self {
         self.gate_style = style;
         self
@@ -75,6 +80,7 @@ impl<'label> StickGauge<'label> {
 
     /// Sets the style used for the position marker.
     #[must_use]
+    #[inline]
     pub const fn marker_style(mut self, style: Style) -> Self {
         self.marker_style = style;
         self
@@ -82,6 +88,7 @@ impl<'label> StickGauge<'label> {
 
     /// Sets the style used for the observed stick trace.
     #[must_use]
+    #[inline]
     pub const fn trace_style(mut self, style: Style) -> Self {
         self.trace_style = style;
         self
@@ -89,6 +96,7 @@ impl<'label> StickGauge<'label> {
 
     /// Sets the style used for labels and numerical values.
     #[must_use]
+    #[inline]
     pub const fn value_style(mut self, style: Style) -> Self {
         self.value_style = style;
         self
@@ -264,15 +272,14 @@ mod tests {
         let mut buffer = Buffer::empty(area);
 
         StickGauge::new("Stick", 0.0, 0.0).render(area, &mut buffer);
-        let marker_cells = buffer
+        let center = 5 * usize::from(area.width) + 9;
+        let marker_is_centered = buffer
             .content()
             .iter()
             .enumerate()
-            .filter(|(_, cell)| cell.fg == Color::Cyan)
-            .map(|(index, _)| index)
-            .collect::<Vec<_>>();
+            .any(|(index, cell)| index == center && cell.fg == Color::Cyan);
 
-        assert!(marker_cells.contains(&(5 * usize::from(area.width) + 9)));
+        assert!(marker_is_centered);
     }
 
     #[test]

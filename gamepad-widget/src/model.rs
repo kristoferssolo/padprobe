@@ -22,6 +22,7 @@ impl GamepadState {
 
     /// Returns the control clusters in their original order.
     #[must_use]
+    #[inline]
     pub fn clusters(&self) -> &[ControlCluster] {
         &self.clusters
     }
@@ -50,6 +51,7 @@ impl ControlCluster {
 
     /// Sets the cluster's approximate physical placement.
     #[must_use]
+    #[inline]
     pub const fn with_placement(mut self, placement: ClusterPlacement) -> Self {
         self.placement = placement;
         self
@@ -64,18 +66,21 @@ impl ControlCluster {
 
     /// Returns the cluster's display title.
     #[must_use]
+    #[inline]
     pub fn title(&self) -> &str {
         &self.title
     }
 
     /// Returns the controls in insertion order.
     #[must_use]
+    #[inline]
     pub fn controls(&self) -> &[Control] {
         &self.controls
     }
 
     /// Returns the cluster's approximate physical placement.
     #[must_use]
+    #[inline]
     pub const fn placement(&self) -> ClusterPlacement {
         self.placement
     }
@@ -127,12 +132,14 @@ impl Control {
 
     /// Returns the control's display label.
     #[must_use]
+    #[inline]
     pub fn label(&self) -> &str {
         &self.label
     }
 
     /// Returns the control's current value.
     #[must_use]
+    #[inline]
     pub const fn value(&self) -> ControlValue {
         self.value
     }

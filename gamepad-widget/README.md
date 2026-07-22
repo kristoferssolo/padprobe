@@ -61,5 +61,5 @@ terminal aspect ratio so the gate remains circular as the available area
 changes.
 
 The unified controller layout is used when the available area is at least
-44×21 cells. Smaller areas, or states containing extra unplaced controls, use
+48×25 cells. Smaller areas, or states containing extra unplaced controls, use
 an ordered responsive grid so arbitrary clusters remain visible.
