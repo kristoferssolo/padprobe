@@ -58,14 +58,11 @@ fn render_full(frame: &mut Frame<'_>, app: &App, area: Rect) {
 }
 
 fn render_dashboard(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    let vertical = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(25), Constraint::Length(1)])
-        .split(area);
+    let dashboard = dashboard_area(area);
     let columns = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(52), Constraint::Percentage(48)])
-        .split(vertical[0]);
+        .split(dashboard);
     let diagnostics = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
@@ -79,7 +76,24 @@ fn render_dashboard(frame: &mut Frame<'_>, app: &App, area: Rect) {
     render_primary_diagnostics(frame, app, diagnostics[0]);
     render_raw_data(frame, app, lower_cards[0]);
     render_events(frame, app, lower_cards[1]);
-    render_footer(frame, app, vertical[1]);
+    render_footer(
+        frame,
+        app,
+        Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1),
+    );
+}
+
+fn dashboard_area(area: Rect) -> Rect {
+    const MAX_WIDTH: u16 = 180;
+    const MAX_HEIGHT: u16 = 29;
+
+    let width = area.width.min(MAX_WIDTH);
+    Rect::new(
+        area.x + area.width.saturating_sub(width) / 2,
+        area.y,
+        width,
+        area.height.saturating_sub(1).min(MAX_HEIGHT),
+    )
 }
 
 fn render_compact(frame: &mut Frame<'_>, app: &App, area: Rect) {
@@ -180,5 +194,17 @@ mod tests {
         let rendered = render_text(50, 15);
 
         assert!(rendered.contains("Terminal is too small"));
+    }
+
+    #[test]
+    fn large_dashboard_is_constrained_to_content_dimensions() {
+        assert_eq!(
+            dashboard_area(Rect::new(0, 0, 240, 70)),
+            Rect::new(30, 0, 180, 29)
+        );
+        assert_eq!(
+            dashboard_area(Rect::new(0, 0, 120, 30)),
+            Rect::new(0, 0, 120, 29)
+        );
     }
 }
