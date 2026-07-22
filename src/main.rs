@@ -179,6 +179,15 @@ fn handle_diagnostic_key(app: &mut App, key: KeyEvent) -> bool {
         (AppTab::Range, KeyCode::Char('r')) => app.select_range_stick(StickSide::Right),
         (AppTab::Range, KeyCode::Char('s')) => app.toggle_range_test(),
         (AppTab::Range, KeyCode::Esc) => app.cancel_range_test(),
+        (AppTab::Controls, KeyCode::Char('s')) => app.start_control_checklist(),
+        (AppTab::Controls, KeyCode::Enter) => app.finish_control_checklist(),
+        (AppTab::Controls, KeyCode::Down | KeyCode::Char('j')) => {
+            app.control_checklist.select_next();
+        }
+        (AppTab::Controls, KeyCode::Up | KeyCode::Char('k')) => {
+            app.control_checklist.select_previous();
+        }
+        (AppTab::Controls, KeyCode::Char(' ')) => app.control_checklist.skip_selected(),
         _ => return false,
     }
     true

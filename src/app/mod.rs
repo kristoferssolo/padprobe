@@ -1,7 +1,7 @@
 mod device;
 #[cfg(test)]
 mod tests;
-use crate::analysis::{DriftTest, RangeTest, StickSide};
+use crate::analysis::{ControlChecklist, DriftTest, RangeTest, StickSide};
 pub use device::{AxisState, DeviceMetadata, DeviceState, StickTrace};
 use gilrs::{Axis, EventType};
 use std::{
@@ -66,6 +66,7 @@ pub struct App {
     pub status: String,
     pub drift_test: DriftTest,
     pub range_test: RangeTest,
+    pub control_checklist: ControlChecklist,
     next_event_sequence: u64,
 }
 
@@ -92,6 +93,7 @@ impl App {
             status: "gilrs backend ready".to_owned(),
             drift_test: DriftTest::default(),
             range_test: RangeTest::default(),
+            control_checklist: ControlChecklist::default(),
             next_event_sequence: FIRST_EVENT_SEQUENCE,
         }
     }
@@ -137,6 +139,13 @@ impl App {
             self.range_test.cancel();
             self.record_notice_for(Some(id), "Range test cancelled: controller disconnected");
         }
+        if self.control_checklist.device_id() == Some(id) {
+            self.control_checklist.finish();
+            self.record_notice_for(
+                Some(id),
+                "Control checklist interrupted: controller disconnected",
+            );
+        }
     }
 
     pub fn apply_controller_event(&mut self, id: usize, event: &EventType) {
@@ -170,6 +179,9 @@ impl App {
         {
             let position = stick_position(device, self.range_test.side());
             self.range_test.record(id, position);
+        }
+        if let Some(key) = checklist_event_key(event) {
+            self.control_checklist.observe(id, &key);
         }
 
         self.push_event(Some(id), format_event(event));
@@ -298,6 +310,35 @@ impl App {
         }
     }
 
+    pub fn start_control_checklist(&mut self) {
+        let Some((id, device)) = self.selected_device() else {
+            self.record_notice("Control checklist unavailable: no controller selected");
+            return;
+        };
+        if !device.connected {
+            self.record_notice_for(
+                Some(id),
+                "Control checklist unavailable: controller disconnected",
+            );
+            return;
+        }
+        let observed = device
+            .buttons
+            .keys()
+            .map(|button| format!("button:{button:?}"))
+            .chain(device.axes.keys().map(|axis| format!("axis:{axis:?}")))
+            .collect::<Vec<_>>();
+        self.control_checklist.start(id, observed);
+        self.record_notice_for(Some(id), "Control checklist started");
+    }
+
+    pub fn finish_control_checklist(&mut self) {
+        if self.control_checklist.is_active() {
+            self.control_checklist.finish();
+            self.record_notice("Control checklist finished");
+        }
+    }
+
     pub fn cancel_drift_test(&mut self) {
         if self.drift_test.device_id().is_some() {
             self.drift_test.cancel();
@@ -398,6 +439,19 @@ const fn axis_matches_stick(axis: Axis, side: StickSide) -> bool {
         (Axis::LeftStickX | Axis::LeftStickY, StickSide::Left)
             | (Axis::RightStickX | Axis::RightStickY, StickSide::Right)
     )
+}
+
+fn checklist_event_key(event: &EventType) -> Option<String> {
+    match event {
+        EventType::ButtonPressed(button, _) => Some(format!("button:{button:?}")),
+        EventType::ButtonChanged(button, value, _) if *value > 0.5 => {
+            Some(format!("button:{button:?}"))
+        }
+        EventType::AxisChanged(axis, value, _) if value.abs() >= 0.5 => {
+            Some(format!("axis:{axis:?}"))
+        }
+        _ => None,
+    }
 }
 
 #[inline]
