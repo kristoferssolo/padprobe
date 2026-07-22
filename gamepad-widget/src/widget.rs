@@ -87,7 +87,7 @@ impl Widget for GamepadWidget<'_> {
 
 fn render_controller_art(area: Rect, buffer: &mut Buffer, widget: GamepadWidget<'_>) {
     let width = area.width.min(70);
-    let height = area.height.min(23);
+    let height = area.height.min(25);
     let art = Rect::new(
         area.x + area.width.saturating_sub(width) / 2,
         area.y + area.height.saturating_sub(height) / 2,
@@ -98,54 +98,51 @@ fn render_controller_art(area: Rect, buffer: &mut Buffer, widget: GamepadWidget<
 
     let left_center = art.x + art.width / 4;
     let right_center = art.x + art.width * 3 / 4;
-    render_control_row(
+    render_shoulder(
         cluster_at(widget.state, ClusterPlacement::LeftShoulder),
-        Rect::new(art.x + 2, art.y, art.width / 3, 1),
+        left_center,
+        art.y,
         buffer,
         widget,
     );
-    render_control_row(
+    render_shoulder(
         cluster_at(widget.state, ClusterPlacement::RightShoulder),
-        Rect::new(
-            art.right().saturating_sub(art.width / 3 + 2),
-            art.y,
-            art.width / 3,
-            1,
-        ),
+        right_center,
+        art.y,
         buffer,
         widget,
     );
     render_control_row(
         cluster_at(widget.state, ClusterPlacement::Menu),
-        Rect::new(art.x + art.width / 4, art.y + 5, art.width / 2, 1),
+        Rect::new(art.x + art.width / 4, art.y + 9, art.width / 2, 1),
         buffer,
         widget,
     );
     render_art_stick(
         cluster_at(widget.state, ClusterPlacement::LeftStick),
         left_center,
-        art.y + 6,
+        art.y + 10,
         buffer,
         widget,
     );
     render_art_diamond(
         cluster_at(widget.state, ClusterPlacement::Face),
         right_center,
-        art.y + 7,
+        art.y + 10,
         buffer,
         widget,
     );
     render_art_diamond(
         cluster_at(widget.state, ClusterPlacement::DPad),
         left_center,
-        art.y + 12,
+        art.y + 16,
         buffer,
         widget,
     );
     render_art_stick(
         cluster_at(widget.state, ClusterPlacement::RightStick),
         right_center,
-        art.y + 12,
+        art.y + 16,
         buffer,
         widget,
     );
@@ -154,7 +151,7 @@ fn render_controller_art(area: Rect, buffer: &mut Buffer, widget: GamepadWidget<
 fn render_shell(area: Rect, buffer: &mut Buffer, style: Style) {
     let left = area.x;
     let right = area.right().saturating_sub(1);
-    let top = area.y + 2;
+    let top = area.y + 6;
     draw_horizontal(buffer, left + 11, right - 9, top, style);
     buffer[(left + 10, top)].set_char('╭').set_style(style);
     buffer[(right - 10, top)].set_char('╮').set_style(style);
@@ -226,6 +223,58 @@ fn cluster_at(state: &GamepadState, placement: ClusterPlacement) -> Option<&Cont
         .clusters()
         .iter()
         .find(|cluster| cluster.placement() == placement)
+}
+
+fn render_shoulder(
+    cluster: Option<&ControlCluster>,
+    center: u16,
+    y: u16,
+    buffer: &mut Buffer,
+    widget: GamepadWidget<'_>,
+) {
+    let Some(cluster) = cluster else {
+        return;
+    };
+    let [bumper, trigger] = cluster.controls() else {
+        render_control_row(
+            Some(cluster),
+            Rect::new(center.saturating_sub(9), y + 3, 18, 1),
+            buffer,
+            widget,
+        );
+        return;
+    };
+    let trigger_style = if control_active(trigger) {
+        widget.active_style
+    } else {
+        widget.border_style
+    };
+    let bumper_style = if control_active(bumper) {
+        widget.active_style
+    } else {
+        widget.border_style
+    };
+    Paragraph::new(vec![
+        Line::styled("╭───╮", trigger_style).alignment(Alignment::Center),
+        Line::styled(
+            format!("│{:^3}│", compact_label(trigger.label(), 3)),
+            trigger_style,
+        )
+        .alignment(Alignment::Center),
+        Line::styled("╰───╯", trigger_style).alignment(Alignment::Center),
+        Line::styled("╭─────╮", bumper_style).alignment(Alignment::Center),
+        Line::styled(
+            format!("│{:^5}│", compact_label(bumper.label(), 5)),
+            bumper_style,
+        )
+        .alignment(Alignment::Center),
+        Line::styled("╰─────╯", bumper_style).alignment(Alignment::Center),
+    ])
+    .render(Rect::new(center.saturating_sub(4), y, 9, 6), buffer);
+}
+
+fn compact_label(label: &str, width: usize) -> String {
+    label.chars().take(width).collect()
 }
 
 fn render_control_row(
@@ -328,16 +377,20 @@ fn render_art_diamond(
 }
 
 fn control_span(control: &Control, idle_style: Style, active_style: Style) -> Span<'static> {
-    let active = match control.value() {
-        ControlValue::Button { pressed } => pressed,
-        ControlValue::Trigger { value } => value.is_some_and(|value| value > 0.1),
-        ControlValue::Stick { x, y, pressed } => pressed || x.hypot(y) > 0.15,
-        ControlValue::Axis { value } => value.abs() > 0.15,
-    };
+    let active = control_active(control);
     Span::styled(
         format!("{} {}", if active { "●" } else { "○" }, control.label()),
         if active { active_style } else { idle_style },
     )
+}
+
+fn control_active(control: &Control) -> bool {
+    match control.value() {
+        ControlValue::Button { pressed } => pressed,
+        ControlValue::Trigger { value } => value.is_some_and(|value| value > 0.1),
+        ControlValue::Stick { x, y, pressed } => pressed || x.hypot(y) > 0.15,
+        ControlValue::Axis { value } => value.abs() > 0.15,
+    }
 }
 
 fn vertically_center(lines: Vec<Line<'static>>, height: u16) -> Vec<Line<'static>> {
@@ -498,7 +551,7 @@ fn stick_direction(x: f32, y: f32) -> char {
 
 fn controller_areas(area: Rect, clusters: &[ControlCluster]) -> Option<Vec<Rect>> {
     const MIN_WIDTH: u16 = 48;
-    const MIN_HEIGHT: u16 = 21;
+    const MIN_HEIGHT: u16 = 25;
     const TOP_HEIGHT: u16 = 4;
 
     let has_unplaced_cluster = clusters.iter().any(|cluster| {
@@ -739,7 +792,7 @@ mod tests {
             ControlCluster::new("Face").with_placement(ClusterPlacement::Face),
         ];
 
-        let areas = controller_areas(Rect::new(0, 0, 100, 21), &clusters)
+        let areas = controller_areas(Rect::new(0, 0, 100, 25), &clusters)
             .expect("wide area should use controller layout");
 
         assert_eq!(areas[0].x, areas[1].x);
@@ -761,7 +814,7 @@ mod tests {
     fn semantic_layout_reserves_space_for_menu_controls() {
         let clusters = [ControlCluster::new("Menu").with_placement(ClusterPlacement::Menu)];
 
-        let areas = controller_areas(Rect::new(0, 0, 100, 21), &clusters)
+        let areas = controller_areas(Rect::new(0, 0, 100, 25), &clusters)
             .expect("standard area should use controller layout");
 
         assert_eq!(areas[0].height, 4);
@@ -789,7 +842,7 @@ mod tests {
                     pressed: false,
                 },
             ))]);
-        let area = Rect::new(0, 0, 70, 23);
+        let area = Rect::new(0, 0, 70, 25);
         let mut buffer = Buffer::empty(area);
 
         GamepadWidget::new(&state).render(area, &mut buffer);
@@ -812,19 +865,19 @@ mod tests {
 
     #[test]
     fn controller_shell_has_shoulders_body_notch_and_grips() {
-        let area = Rect::new(0, 0, 70, 23);
+        let area = Rect::new(0, 0, 70, 25);
         let mut buffer = Buffer::empty(area);
 
         render_shell(area, &mut buffer, Style::default());
 
-        assert_eq!(buffer[(10, 2)].symbol(), "╭");
-        assert_eq!(buffer[(59, 2)].symbol(), "╮");
-        assert_eq!(buffer[(1, 7)].symbol(), "│");
-        assert_eq!(buffer[(18, 17)].symbol(), "╭");
-        assert_eq!(buffer[(51, 17)].symbol(), "╮");
-        assert_eq!(buffer[(5, 20)].symbol(), "╰");
-        assert_eq!(buffer[(15, 20)].symbol(), "╯");
-        assert_eq!(buffer[(54, 20)].symbol(), "╰");
-        assert_eq!(buffer[(64, 20)].symbol(), "╯");
+        assert_eq!(buffer[(10, 6)].symbol(), "╭");
+        assert_eq!(buffer[(59, 6)].symbol(), "╮");
+        assert_eq!(buffer[(1, 11)].symbol(), "│");
+        assert_eq!(buffer[(18, 21)].symbol(), "╭");
+        assert_eq!(buffer[(51, 21)].symbol(), "╮");
+        assert_eq!(buffer[(5, 24)].symbol(), "╰");
+        assert_eq!(buffer[(15, 24)].symbol(), "╯");
+        assert_eq!(buffer[(54, 24)].symbol(), "╰");
+        assert_eq!(buffer[(64, 24)].symbol(), "╯");
     }
 }
