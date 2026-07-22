@@ -11,11 +11,15 @@ use ratatui::{
 };
 
 pub(super) fn render_live_state(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    let block = panel_block(" Live state ");
     let Some((id, device)) = app.selected_device() else {
-        frame.render_widget(Paragraph::new("No controller selected.").block(block), area);
+        frame.render_widget(
+            Paragraph::new("No controller selected.").block(panel_block(" Controller ")),
+            area,
+        );
         return;
     };
+    let title = format!(" Controller · {} ", device.metadata.name);
+    let block = panel_block(&title);
 
     let inner = block.inner(area);
     frame.render_widget(block, area);
@@ -61,25 +65,20 @@ fn render_metadata(frame: &mut Frame<'_>, id: usize, device: &DeviceState, area:
     };
     let lines = vec![
         Line::from(vec![
-            Span::styled(
-                &device.metadata.name,
-                Style::default().add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(format!("  gilrs:{id}  ")),
+            Span::styled("gilrs", Style::default().add_modifier(Modifier::BOLD)),
+            Span::raw(format!(":{id}  ")),
             connected,
         ]),
         Line::from(format!(
-            "VID:PID {vendor}:{product}  mapping: {}  rumble: {rumble}",
+            "VID:PID {vendor}:{product}  mapping: {}",
             device.metadata.mapping
         )),
         Line::from(format!(
-            "power: {}  uuid: {}",
+            "power: {}  uuid: {}  rumble: {rumble}",
             device.metadata.power, device.metadata.uuid
         )),
-        Line::from(
-            "cluster view: ○ idle, ● active; values are normalized mapped input reported by gilrs",
-        )
-        .style(Style::default().fg(Color::DarkGray)),
+        Line::from("○ idle · ● active · normalized mapped input from gilrs")
+            .style(Style::default().fg(Color::DarkGray)),
     ];
     frame.render_widget(Paragraph::new(lines), area);
 }

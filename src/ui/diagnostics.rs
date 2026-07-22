@@ -5,7 +5,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::Line,
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, BorderType, Borders, Paragraph},
 };
 
 pub(super) fn render_primary_diagnostics(frame: &mut Frame<'_>, app: &App, area: Rect) {
@@ -184,6 +184,7 @@ fn render_trigger(frame: &mut Frame<'_>, label: &str, value: f32, area: Rect) {
 fn diagnostic_block(title: &str, color: Color) -> Block<'_> {
     Block::default()
         .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(Color::DarkGray))
         .title(Line::styled(title, Style::default().fg(color)))
 }
