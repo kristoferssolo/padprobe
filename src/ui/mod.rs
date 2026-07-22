@@ -1,4 +1,5 @@
 mod devices;
+mod diagnostics;
 mod events;
 mod footer;
 mod gamepad;
@@ -7,8 +8,9 @@ mod live_state;
 mod overlays;
 
 use self::{
-    devices::render_device_selector, events::render_events, footer::render_footer,
-    live_state::render_live_state, overlays::render_help,
+    devices::render_device_selector, diagnostics::render_primary_diagnostics,
+    events::render_events, footer::render_footer, live_state::render_live_state,
+    overlays::render_help,
 };
 use crate::app::App;
 use ratatui::{
@@ -61,9 +63,14 @@ fn render_dashboard(frame: &mut Frame<'_>, app: &App, area: Rect) {
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(52), Constraint::Percentage(48)])
         .split(vertical[0]);
+    let diagnostics = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(columns[1]);
 
     render_live_state(frame, app, columns[0]);
-    render_events(frame, app, columns[1]);
+    render_primary_diagnostics(frame, app, diagnostics[0]);
+    render_events(frame, app, diagnostics[1]);
     render_footer(frame, app, vertical[1]);
 }
 
