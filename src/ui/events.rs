@@ -21,6 +21,9 @@ pub(super) fn render_events(frame: &mut Frame<'_>, app: &App, area: Rect) {
     let lines = entries.into_iter().skip(skip).map(|entry| {
         let seconds = entry.elapsed.as_secs();
         let millis = entry.elapsed.subsec_millis();
+        if area.width < 40 {
+            return Line::from(format!("{seconds:>5}.{millis:03}  {}", entry.description));
+        }
         let source = entry
             .device_id
             .map_or_else(|| "app".to_owned(), |id| format!("gilrs:{id}"));
