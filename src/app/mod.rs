@@ -9,6 +9,7 @@ use std::{
 };
 
 pub const EVENT_CAPACITY: usize = 256;
+const FIRST_EVENT_SEQUENCE: u64 = 1;
 
 #[derive(Clone, Debug)]
 pub struct EventEntry {
@@ -53,7 +54,7 @@ impl App {
             help_visible: false,
             should_quit: false,
             status: "gilrs backend ready".to_owned(),
-            next_event_sequence: 0,
+            next_event_sequence: FIRST_EVENT_SEQUENCE,
         }
     }
 
@@ -62,11 +63,7 @@ impl App {
         if let Some(device) = self.devices.get_mut(&id) {
             device.metadata = metadata;
             device.connected = true;
-            device.buttons.clear();
-            device.button_values.clear();
-            device.axes.clear();
-            device.left_stick_trace.clear();
-            device.right_stick_trace.clear();
+            device.clear_input_state();
         } else {
             self.devices.insert(id, DeviceState::new(metadata));
             self.device_order.push(id);
@@ -86,10 +83,7 @@ impl App {
         };
 
         device.connected = false;
-        device
-            .buttons
-            .values_mut()
-            .for_each(|pressed| *pressed = false);
+        device.clear_input_state();
         let name = device.metadata.name.clone();
         self.status = if self.selected_id == Some(id) {
             format!("Selected controller disconnected: {name}")
@@ -128,19 +122,23 @@ impl App {
         self.push_event(Some(id), format_event(event));
     }
 
+    #[inline]
     pub fn select_next(&mut self) {
         self.move_selection(1);
     }
 
+    #[inline]
     pub fn select_previous(&mut self) {
         self.move_selection(-1);
     }
 
-    pub fn open_device_selector(&mut self) {
+    #[inline]
+    pub const fn open_device_selector(&mut self) {
         self.device_selector_visible = true;
     }
 
-    pub fn close_device_selector(&mut self) {
+    #[inline]
+    pub const fn close_device_selector(&mut self) {
         self.device_selector_visible = false;
     }
 
@@ -162,6 +160,7 @@ impl App {
     }
 
     #[must_use]
+    #[inline]
     pub fn selected_device(&self) -> Option<(usize, &DeviceState)> {
         let id = self.selected_id?;
         self.devices.get(&id).map(|device| (id, device))
@@ -183,7 +182,7 @@ impl App {
             .selected_id
             .and_then(|id| connected.iter().position(|candidate| *candidate == id));
         let next = match (current, direction) {
-            (Some(0), -1) | (None, -1) => connected.len() - 1,
+            (Some(0) | None, -1) => connected.len() - 1,
             (Some(index), -1) => index - 1,
             (Some(index), 1) => (index + 1) % connected.len(),
             (None, 1) => 0,
@@ -208,6 +207,7 @@ impl App {
     }
 }
 
+#[inline]
 fn update_stick_trace(device: &mut DeviceState, changed_axis: Axis) {
     let (trace, x_axis, y_axis) = match changed_axis {
         Axis::LeftStickX | Axis::LeftStickY => (
@@ -227,6 +227,7 @@ fn update_stick_trace(device: &mut DeviceState, changed_axis: Axis) {
     trace.push(x, y);
 }
 
+#[inline]
 fn apply_button_value(device: &mut DeviceState, button: gilrs::Button, value: f32) {
     device.buttons.insert(button, value > 0.5);
     device.button_values.insert(button, value);

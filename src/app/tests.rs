@@ -34,6 +34,27 @@ fn keeps_disconnected_device_selected() {
 }
 
 #[test]
+fn disconnect_clears_stale_input_state() {
+    let mut app = App::new();
+    app.connect(4, metadata("controller"));
+    let device = app
+        .devices
+        .get_mut(&4)
+        .expect("fixture device should exist");
+    apply_button_value(device, gilrs::Button::LeftTrigger2, 1.0);
+    device.axes.insert(Axis::LeftStickX, AxisState::new(0.75));
+    update_stick_trace(device, Axis::LeftStickX);
+
+    app.disconnect(4);
+
+    let device = &app.devices[&4];
+    assert!(device.buttons.is_empty());
+    assert!(device.button_values.is_empty());
+    assert!(device.axes.is_empty());
+    assert!(device.left_stick_trace.points().is_empty());
+}
+
+#[test]
 fn navigation_explicitly_leaves_disconnected_selection() {
     let mut app = App::new();
     app.connect(4, metadata("first"));
@@ -51,9 +72,9 @@ fn axis_updates_preserve_observed_range() {
     state.update(-0.7);
     state.update(0.5);
 
-    assert_eq!(state.current, 0.5);
-    assert_eq!(state.minimum, -0.7);
-    assert_eq!(state.maximum, 0.5);
+    assert!((state.current - 0.5).abs() < f32::EPSILON);
+    assert!((state.minimum - -0.7).abs() < f32::EPSILON);
+    assert!((state.maximum - 0.5).abs() < f32::EPSILON);
     assert_eq!(state.changes, 3);
 }
 
@@ -61,16 +82,15 @@ fn axis_updates_preserve_observed_range() {
 fn analog_button_values_are_preserved() {
     let mut app = App::new();
     app.connect(1, metadata("controller"));
-    let Some(device) = app.devices.get_mut(&1) else {
-        panic!("fixture device should exist");
-    };
+    let device = app
+        .devices
+        .get_mut(&1)
+        .expect("fixture device should exist");
 
     apply_button_value(device, gilrs::Button::LeftTrigger2, 0.37);
 
-    assert_eq!(
-        app.devices[&1].button_values[&gilrs::Button::LeftTrigger2],
-        0.37
-    );
+    let value = app.devices[&1].button_values[&gilrs::Button::LeftTrigger2];
+    assert!((value - 0.37).abs() < f32::EPSILON);
 }
 
 #[test]
@@ -83,7 +103,10 @@ fn event_history_evicts_oldest_entry() {
     }
 
     assert_eq!(app.events.len(), EVENT_CAPACITY);
-    assert_eq!(app.events.front().unwrap().description, "event 0");
+    assert_eq!(
+        app.events.front().expect("event history should not be empty").description,
+        "event 0"
+    );
 }
 
 #[test]
@@ -92,12 +115,36 @@ fn pausing_events_captures_current_sequence() {
     app.connect(1, metadata("controller"));
 
     app.toggle_event_scroll();
-    let anchor = app.event_scroll_anchor;
+    let anchor = app
+        .event_scroll_anchor
+        .expect("event log should be paused");
     app.push_event(Some(1), "later event".to_owned());
 
-    assert!(anchor.is_some());
-    assert_eq!(app.event_scroll_anchor, anchor);
-    assert!(app.events.back().unwrap().sequence > anchor.unwrap());
+    assert_eq!(app.event_scroll_anchor, Some(anchor));
+    assert!(
+        app.events
+            .back()
+            .expect("later event should be recorded")
+            .sequence
+            > anchor
+    );
+}
+
+#[test]
+fn pausing_an_empty_log_hides_later_events() {
+    let mut app = App::new();
+
+    app.toggle_event_scroll();
+    app.push_event(None, "later event".to_owned());
+
+    let anchor = app
+        .event_scroll_anchor
+        .expect("event log should be paused");
+    assert!(
+        app.events
+            .back()
+            .is_some_and(|event| event.sequence > anchor)
+    );
 }
 
 #[test]
@@ -131,8 +178,8 @@ fn stick_trace_records_paired_axis_positions() {
 fn stick_trace_remains_bounded() {
     let mut trace = StickTrace::default();
 
-    for index in 0..512 {
-        trace.push(index as f32, 0.0);
+    for index in 0_u16..512 {
+        trace.push(f32::from(index), 0.0);
     }
 
     assert!(trace.points().len() <= 256);
