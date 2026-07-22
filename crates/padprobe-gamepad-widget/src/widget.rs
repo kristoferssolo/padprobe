@@ -67,6 +67,9 @@ impl Widget for GamepadWidget<'_> {
                 ClusterPlacement::DPad | ClusterPlacement::Face => {
                     diamond_lines(cluster, self.idle_style, self.active_style)
                 }
+                ClusterPlacement::LeftStick | ClusterPlacement::RightStick => {
+                    stick_lines(cluster, self.idle_style, self.active_style)
+                }
                 _ => control_lines(cluster, self.idle_style, self.active_style),
             };
             Paragraph::new(lines).render(inner, buffer);
@@ -115,6 +118,60 @@ fn button_span(control: &Control, idle_style: Style, active_style: Style) -> Spa
         format!("{} {}", if pressed { "●" } else { "○" }, control.label()),
         if pressed { active_style } else { idle_style },
     )
+}
+
+fn stick_lines(
+    cluster: &ControlCluster,
+    idle_style: Style,
+    active_style: Style,
+) -> Vec<Line<'static>> {
+    let [control] = cluster.controls() else {
+        return control_lines(cluster, idle_style, active_style);
+    };
+    let ControlValue::Stick { x, y, pressed } = control.value() else {
+        return control_lines(cluster, idle_style, active_style);
+    };
+    let magnitude = x.hypot(y);
+    let style = if pressed || magnitude > 0.15 {
+        active_style
+    } else {
+        idle_style
+    };
+    let mut lines = stick_plot(x, y)
+        .into_iter()
+        .map(|line| Line::styled(line, style).alignment(Alignment::Center))
+        .collect::<Vec<_>>();
+    lines.push(
+        Line::styled(
+            format!(
+                "x {x:+.2}  y {y:+.2}  r {magnitude:.2}  {} {}",
+                control.label(),
+                if pressed { "●" } else { "○" }
+            ),
+            style,
+        )
+        .alignment(Alignment::Center),
+    );
+    lines
+}
+
+fn stick_plot(x: f32, y: f32) -> Vec<String> {
+    let mut rows = [
+        "  ╭───────╮  ".chars().collect::<Vec<_>>(),
+        " ╱         ╲ ".chars().collect(),
+        "│           │".chars().collect(),
+        "│           │".chars().collect(),
+        "│           │".chars().collect(),
+        " ╲         ╱ ".chars().collect(),
+        "  ╰───────╯  ".chars().collect(),
+    ];
+    let column = usize::try_from(6_i32 + (x.clamp(-1.0, 1.0) * 4.0).round() as i32).unwrap_or(6);
+    let row = usize::try_from(3_i32 - (y.clamp(-1.0, 1.0) * 2.0).round() as i32).unwrap_or(3);
+    rows[row][column] = if x.hypot(y) > 0.05 { '●' } else { '·' };
+
+    rows.into_iter()
+        .map(|characters| characters.into_iter().collect())
+        .collect()
 }
 
 fn control_line(control: &Control, idle_style: Style, active_style: Style) -> Line<'static> {
@@ -259,5 +316,32 @@ mod tests {
         assert_eq!(lines[1].spans[0].content, "○ West");
         assert_eq!(lines[1].spans[2].content, "● East");
         assert_eq!(lines[2].spans[0].content, "○ South");
+    }
+
+    #[test]
+    fn stick_plot_moves_marker_with_direction() {
+        let centered = stick_plot(0.0, 0.0);
+        let upper_right = stick_plot(1.0, 1.0);
+
+        assert_eq!(centered[3].chars().nth(6), Some('·'));
+        assert_eq!(upper_right[1].chars().nth(10), Some('●'));
+    }
+
+    #[test]
+    fn stick_summary_reports_strength_and_click() {
+        let cluster = ControlCluster::new("Left stick")
+            .with_placement(ClusterPlacement::LeftStick)
+            .with_control(Control::new(
+                "L3",
+                ControlValue::Stick {
+                    x: 0.3,
+                    y: 0.4,
+                    pressed: true,
+                },
+            ));
+
+        let lines = stick_lines(&cluster, Style::default(), Style::default());
+
+        assert_eq!(lines[7].spans[0].content, "x +0.30  y +0.40  r 0.50  L3 ●");
     }
 }
