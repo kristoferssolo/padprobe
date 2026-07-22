@@ -101,12 +101,42 @@ fn render_sticks(frame: &mut Frame<'_>, device: Option<&DeviceState>, area: Rect
         )
     });
 
-    render_stick(frame, "LEFT", left_x, left_y, halves[0]);
-    render_stick(frame, "RIGHT", right_x, right_y, halves[1]);
+    if let Some(device) = device {
+        render_stick(
+            frame,
+            "LEFT",
+            left_x,
+            left_y,
+            device.left_stick_trace.points(),
+            halves[0],
+        );
+        render_stick(
+            frame,
+            "RIGHT",
+            right_x,
+            right_y,
+            device.right_stick_trace.points(),
+            halves[1],
+        );
+    } else {
+        render_stick(frame, "LEFT", left_x, left_y, &[], halves[0]);
+        render_stick(frame, "RIGHT", right_x, right_y, &[], halves[1]);
+    }
 }
 
-fn render_stick(frame: &mut Frame<'_>, label: &str, x: f32, y: f32, area: Rect) {
+fn render_stick(
+    frame: &mut Frame<'_>,
+    label: &str,
+    x: f32,
+    y: f32,
+    trace: &[(f64, f64)],
+    area: Rect,
+) {
     let magnitude = x.hypot(y);
+    let metric = edge_error(trace).map_or_else(
+        || format!("observed offset {:.1}%", magnitude * 100.0),
+        |error| format!("offset {:.1}% · edge {error:.1}%", magnitude * 100.0),
+    );
     let value_style = if magnitude > 0.15 {
         Style::default().fg(Color::Cyan)
     } else {
@@ -114,15 +144,29 @@ fn render_stick(frame: &mut Frame<'_>, label: &str, x: f32, y: f32, area: Rect) 
     };
     frame.render_widget(
         StickGauge::new(label, x, y)
+            .trace(trace)
+            .metric(&metric)
             .gate_style(Style::default().fg(Color::DarkGray))
             .marker_style(
                 Style::default()
                     .fg(Color::Cyan)
                     .add_modifier(Modifier::BOLD),
             )
+            .trace_style(Style::default().fg(Color::Green))
             .value_style(value_style),
         area,
     );
+}
+
+fn edge_error(trace: &[(f64, f64)]) -> Option<f64> {
+    let (sample_count, total_error) = trace
+        .iter()
+        .map(|(x, y)| x.hypot(*y))
+        .filter(|radius| *radius >= 0.8)
+        .fold((0_usize, 0.0), |(count, total), radius| {
+            (count + 1, total + (1.0 - radius).abs())
+        });
+    (sample_count >= 8).then(|| total_error / sample_count as f64 * 100.0)
 }
 
 fn render_triggers(frame: &mut Frame<'_>, device: Option<&DeviceState>, area: Rect) {
@@ -208,4 +252,15 @@ fn axis_pair(left_label: &str, left: f32, right_label: &str, right: f32) -> Line
     Line::from(format!(
         "{left_label:<2} {left:+.2}   {right_label:<2} {right:+.2}"
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn edge_error_requires_enough_outer_samples() {
+        assert_eq!(edge_error(&[(1.0, 0.0); 7]), None);
+        assert!((edge_error(&[(0.9, 0.0); 8]).expect("enough samples") - 10.0).abs() < 1e-9);
+    }
 }
