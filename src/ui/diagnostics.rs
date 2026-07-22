@@ -143,10 +143,7 @@ fn render_stick(
     area: Rect,
 ) {
     let magnitude = x.hypot(y);
-    let metric = edge_error(trace).map_or_else(
-        || format!("observed offset {:.1}%", magnitude * 100.0),
-        |error| format!("offset {:.1}% · edge {error:.1}%", magnitude * 100.0),
-    );
+    let metric = stick_metric(magnitude, edge_error(trace), area.width);
     let value_style = if magnitude > 0.15 {
         Style::default().fg(Color::Cyan)
     } else {
@@ -166,6 +163,16 @@ fn render_stick(
             .value_style(value_style),
         area,
     );
+}
+
+fn stick_metric(magnitude: f32, edge_error: Option<f64>, width: u16) -> String {
+    let offset = magnitude * 100.0;
+    match (edge_error, width) {
+        (Some(error), 24..) => format!("offset {offset:.1}% · edge {error:.1}%"),
+        (Some(error), 19..) => format!("off {offset:.1}% · err {error:.1}%"),
+        _ if width >= 12 => format!("offset {offset:.1}%"),
+        _ => format!("off {offset:.0}%"),
+    }
 }
 
 fn edge_error(trace: &[(f64, f64)]) -> Option<f64> {
@@ -344,5 +351,15 @@ mod tests {
         assert_eq!(lines.len(), 5);
         assert_eq!(lines[0].spans[0].content, "[ 0]");
         assert_eq!(lines[0].spans[0].style.fg, Some(Color::Cyan));
+    }
+
+    #[test]
+    fn stick_metric_adapts_to_available_width() {
+        assert_eq!(
+            stick_metric(0.005, Some(2.0), 30),
+            "offset 0.5% · edge 2.0%"
+        );
+        assert_eq!(stick_metric(0.005, Some(2.0), 20), "off 0.5% · err 2.0%");
+        assert_eq!(stick_metric(0.005, Some(2.0), 17), "offset 0.5%");
     }
 }
