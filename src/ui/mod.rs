@@ -58,24 +58,11 @@ fn render_full(frame: &mut Frame<'_>, app: &App, area: Rect) {
 }
 
 fn render_dashboard(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    let dashboard = dashboard_area(area);
-    let columns = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(52), Constraint::Percentage(48)])
-        .split(dashboard);
-    let diagnostics = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(columns[1]);
-    let lower_cards = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(diagnostics[1]);
-
-    render_live_state(frame, app, columns[0]);
-    render_primary_diagnostics(frame, app, diagnostics[0]);
-    render_raw_data(frame, app, lower_cards[0]);
-    render_events(frame, app, lower_cards[1]);
+    let [controller, primary, raw, events] = dashboard_sections(area);
+    render_live_state(frame, app, controller);
+    render_primary_diagnostics(frame, app, primary);
+    render_raw_data(frame, app, raw);
+    render_events(frame, app, events);
     render_footer(
         frame,
         app,
@@ -83,16 +70,59 @@ fn render_dashboard(frame: &mut Frame<'_>, app: &App, area: Rect) {
     );
 }
 
+fn dashboard_sections(area: Rect) -> [Rect; 4] {
+    const CARD_HEIGHT: u16 = 29;
+    const PRIMARY_HEIGHT: u16 = 15;
+    const RAW_HEIGHT: u16 = 14;
+
+    let dashboard = dashboard_area(area);
+    let columns = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(52), Constraint::Percentage(48)])
+        .split(dashboard);
+    let primary_height = if dashboard.height >= CARD_HEIGHT {
+        PRIMARY_HEIGHT
+    } else {
+        dashboard.height / 2
+    };
+    let primary = Rect::new(columns[1].x, columns[1].y, columns[1].width, primary_height);
+    let lower = Rect::new(
+        columns[1].x,
+        columns[1].y + primary_height,
+        columns[1].width,
+        columns[1].height.saturating_sub(primary_height),
+    );
+    let lower_cards = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(lower);
+    [
+        Rect::new(
+            columns[0].x,
+            columns[0].y,
+            columns[0].width,
+            columns[0].height.min(CARD_HEIGHT),
+        ),
+        primary,
+        Rect::new(
+            lower_cards[0].x,
+            lower_cards[0].y,
+            lower_cards[0].width,
+            lower_cards[0].height.min(RAW_HEIGHT),
+        ),
+        lower_cards[1],
+    ]
+}
+
 fn dashboard_area(area: Rect) -> Rect {
     const MAX_WIDTH: u16 = 180;
-    const MAX_HEIGHT: u16 = 29;
 
     let width = area.width.min(MAX_WIDTH);
     Rect::new(
         area.x + area.width.saturating_sub(width) / 2,
         area.y,
         width,
-        area.height.saturating_sub(1).min(MAX_HEIGHT),
+        area.height.saturating_sub(1),
     )
 }
 
@@ -200,11 +230,21 @@ mod tests {
     fn large_dashboard_is_constrained_to_content_dimensions() {
         assert_eq!(
             dashboard_area(Rect::new(0, 0, 240, 70)),
-            Rect::new(30, 0, 180, 29)
+            Rect::new(30, 0, 180, 69)
         );
         assert_eq!(
             dashboard_area(Rect::new(0, 0, 120, 30)),
             Rect::new(0, 0, 120, 29)
         );
+    }
+
+    #[test]
+    fn large_dashboard_gives_remaining_height_to_events() {
+        let [controller, primary, raw, events] = dashboard_sections(Rect::new(0, 0, 240, 70));
+
+        assert_eq!(controller.height, 29);
+        assert_eq!(primary.height, 15);
+        assert_eq!(raw.height, 14);
+        assert_eq!(events.height, 54);
     }
 }
