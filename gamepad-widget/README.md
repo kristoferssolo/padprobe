@@ -55,8 +55,10 @@ frame.render_widget(
 );
 ```
 
-The gauge uses the 2×4 dot grid in each Unicode Braille cell, allowing its
-circle and crosshair to scale smoothly with the available terminal area.
+The gauge renders Ratatui canvas `Circle` and `Line` shapes using the 2×4 dot
+grid in each Unicode Braille cell. Its viewport preserves a two-columns-per-row
+terminal aspect ratio so the gate remains circular as the available area
+changes.
 
 The unified controller layout is used when the available area is at least
 44×21 cells. Smaller areas, or states containing extra unplaced controls, use
