@@ -103,12 +103,43 @@ fn render_overview_cluster(
         ClusterPlacement::LeftStick | ClusterPlacement::RightStick => {
             stick_lines(cluster, widget.idle_style, widget.active_style)
         }
-        _ => control_lines(cluster, widget.idle_style, widget.active_style)
-            .into_iter()
-            .map(|line| line.alignment(Alignment::Center))
+        _ => cluster
+            .controls()
+            .iter()
+            .map(|control| overview_control_line(control, widget.idle_style, widget.active_style))
             .collect(),
     });
     Paragraph::new(lines).render(area, buffer);
+}
+
+fn overview_control_line(
+    control: &Control,
+    idle_style: Style,
+    active_style: Style,
+) -> Line<'static> {
+    let (text, active) = match control.value() {
+        ControlValue::Button { pressed } => (
+            format!("{} {}", if pressed { "●" } else { "○" }, control.label()),
+            pressed,
+        ),
+        ControlValue::Trigger { value } => (
+            format!("{} {}", control.label(), trigger_bar(value)),
+            value.is_some_and(|value| value > 0.1),
+        ),
+        ControlValue::Stick { x, y, pressed } => (
+            format!(
+                "{} {} {x:+.2}, {y:+.2}",
+                stick_direction(x, y),
+                control.label()
+            ),
+            pressed || x.hypot(y) > 0.15,
+        ),
+        ControlValue::Axis { value } => (
+            format!("{} {value:+.3}", control.label()),
+            value.abs() > 0.15,
+        ),
+    };
+    Line::styled(text, if active { active_style } else { idle_style }).alignment(Alignment::Center)
 }
 
 fn vertically_center(lines: Vec<Line<'static>>, height: u16) -> Vec<Line<'static>> {
@@ -414,6 +445,16 @@ mod tests {
         assert_eq!(trigger_bar(None), "[·····] n/a");
         assert_eq!(trigger_bar(Some(-1.0)), "[░░░░░] 0.00");
         assert_eq!(trigger_bar(Some(1.5)), "[█████] 1.00");
+    }
+
+    #[test]
+    fn overview_trigger_line_fits_compact_shoulder_area() {
+        let control = Control::new("LT", ControlValue::Trigger { value: Some(0.0) });
+
+        let line = overview_control_line(&control, Style::default(), Style::default());
+
+        assert_eq!(line.spans[0].content, "LT [░░░░░] 0.00");
+        assert!(line.width() <= 18);
     }
 
     #[test]
