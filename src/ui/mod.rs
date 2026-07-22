@@ -1,5 +1,6 @@
 mod devices;
 mod diagnostics;
+mod drift;
 mod events;
 mod footer;
 mod gamepad;
@@ -11,6 +12,7 @@ mod tabs;
 use self::{
     devices::render_device_selector,
     diagnostics::{render_primary_diagnostics, render_raw_data},
+    drift::render_drift,
     events::render_events,
     footer::render_footer,
     live_state::render_live_state,
@@ -53,7 +55,10 @@ fn render_full(frame: &mut Frame<'_>, app: &App, area: Rect) {
     render_footer(frame, app, vertical[2]);
 
     if app.active_tab != crate::app::AppTab::Dashboard {
-        render_placeholder(frame, app, vertical[1]);
+        match app.active_tab {
+            crate::app::AppTab::Drift => render_drift(frame, app, vertical[1]),
+            _ => render_placeholder(frame, app, vertical[1]),
+        }
         return;
     }
 
