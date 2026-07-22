@@ -15,10 +15,13 @@ use ratatui::{
 pub struct StickGauge<'label> {
     label: &'label str,
     button: Option<(&'label str, bool)>,
+    metric: Option<&'label str>,
+    trace: &'label [(f64, f64)],
     x: f32,
     y: f32,
     gate_style: Style,
     marker_style: Style,
+    trace_style: Style,
     value_style: Style,
 }
 
@@ -29,12 +32,15 @@ impl<'label> StickGauge<'label> {
         Self {
             label,
             button: None,
+            metric: None,
+            trace: &[],
             x: x.clamp(-1.0, 1.0),
             y: y.clamp(-1.0, 1.0),
             gate_style: Style::default().fg(Color::DarkGray),
             marker_style: Style::default()
                 .fg(Color::Cyan)
                 .add_modifier(Modifier::BOLD),
+            trace_style: Style::default().fg(Color::Green),
             value_style: Style::default(),
         }
     }
@@ -43,6 +49,20 @@ impl<'label> StickGauge<'label> {
     #[must_use]
     pub const fn button(mut self, label: &'label str, pressed: bool) -> Self {
         self.button = Some((label, pressed));
+        self
+    }
+
+    /// Adds an analysis metric below the stick values.
+    #[must_use]
+    pub const fn metric(mut self, metric: &'label str) -> Self {
+        self.metric = Some(metric);
+        self
+    }
+
+    /// Adds normalized session points to the stick plot.
+    #[must_use]
+    pub const fn trace(mut self, points: &'label [(f64, f64)]) -> Self {
+        self.trace = points;
         self
     }
 
@@ -57,6 +77,13 @@ impl<'label> StickGauge<'label> {
     #[must_use]
     pub const fn marker_style(mut self, style: Style) -> Self {
         self.marker_style = style;
+        self
+    }
+
+    /// Sets the style used for the observed stick trace.
+    #[must_use]
+    pub const fn trace_style(mut self, style: Style) -> Self {
+        self.trace_style = style;
         self
     }
 
@@ -81,16 +108,10 @@ impl Widget for StickGauge<'_> {
         .alignment(Alignment::Center)
         .render(Rect::new(area.x, area.y, area.width, 1), buffer);
 
-        let footer_height = u16::from(area.height >= 3).saturating_mul(2);
+        let footer_height =
+            u16::from(area.height >= 3).saturating_mul(2) + u16::from(self.metric.is_some());
         if let Some(plot) = gate_rect(area, footer_height) {
-            render_gate(
-                plot,
-                buffer,
-                self.x,
-                self.y,
-                self.gate_style,
-                self.marker_style,
-            );
+            render_gate(plot, buffer, self);
         }
 
         if footer_height == 0 {
@@ -120,6 +141,11 @@ impl Widget for StickGauge<'_> {
                     .alignment(Alignment::Center),
             );
         }
+        if let Some(metric) = self.metric {
+            lines.push(
+                Line::styled(metric.to_owned(), self.trace_style).alignment(Alignment::Center),
+            );
+        }
         Paragraph::new(lines).render(footer, buffer);
     }
 }
@@ -139,20 +165,14 @@ fn gate_rect(area: Rect, footer_height: u16) -> Option<Rect> {
     ))
 }
 
-fn render_gate(
-    area: Rect,
-    buffer: &mut Buffer,
-    x: f32,
-    y: f32,
-    gate_style: Style,
-    marker_style: Style,
-) {
+fn render_gate(area: Rect, buffer: &mut Buffer, gauge: StickGauge<'_>) {
     if area.width < 2 || area.height < 2 {
         return;
     }
 
-    let gate_color = gate_style.fg.unwrap_or(Color::Reset);
-    let marker_color = marker_style.fg.unwrap_or(Color::Reset);
+    let gate_color = gauge.gate_style.fg.unwrap_or(Color::Reset);
+    let marker_color = gauge.marker_style.fg.unwrap_or(Color::Reset);
+    let trace_color = gauge.trace_style.fg.unwrap_or(Color::Reset);
     Canvas::default()
         .marker(Marker::Braille)
         .x_bounds([-1.1, 1.1])
@@ -161,10 +181,16 @@ fn render_gate(
             context.draw(&Circle::new(0.0, 0.0, 1.0, gate_color));
             context.draw(&CanvasLine::new(-1.0, 0.0, 1.0, 0.0, gate_color));
             context.draw(&CanvasLine::new(0.0, -1.0, 0.0, 1.0, gate_color));
+            for points in gauge.trace.windows(2) {
+                let [(x1, y1), (x2, y2)] = points else {
+                    continue;
+                };
+                context.draw(&CanvasLine::new(*x1, *y1, *x2, *y2, trace_color));
+            }
             context.layer();
             context.draw(&Circle::new(
-                f64::from(x.clamp(-1.0, 1.0)) * 0.82,
-                f64::from(y.clamp(-1.0, 1.0)) * 0.82,
+                f64::from(gauge.x.clamp(-1.0, 1.0)) * 0.82,
+                f64::from(gauge.y.clamp(-1.0, 1.0)) * 0.82,
                 0.06,
                 marker_color,
             ));
@@ -257,5 +283,25 @@ mod tests {
         assert_eq!(wide.width, wide.height * 2);
         assert_eq!(tall.width, tall.height * 2);
         assert_eq!(tall, Rect::new(0, 1, 30, 15));
+    }
+
+    #[test]
+    fn gauge_renders_observed_trace_and_metric() {
+        let area = Rect::new(0, 0, 20, 12);
+        let trace = [(-0.5, -0.5), (0.5, 0.5)];
+        let mut buffer = Buffer::empty(area);
+
+        StickGauge::new("Stick", 0.5, 0.5)
+            .trace(&trace)
+            .metric("offset 70.7%")
+            .render(area, &mut buffer);
+        let rendered = buffer
+            .content()
+            .iter()
+            .map(ratatui::buffer::Cell::symbol)
+            .collect::<String>();
+
+        assert!(buffer.content().iter().any(|cell| cell.fg == Color::Green));
+        assert!(rendered.contains("offset 70.7%"));
     }
 }
