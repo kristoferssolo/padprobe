@@ -230,7 +230,7 @@ fn cluster_areas(area: Rect, clusters: &[ControlCluster]) -> Vec<Rect> {
 
 fn controller_areas(area: Rect, clusters: &[ControlCluster]) -> Option<Vec<Rect>> {
     const MIN_WIDTH: u16 = 88;
-    const MIN_HEIGHT: u16 = 19;
+    const MIN_HEIGHT: u16 = 17;
     const TOP_HEIGHT: u16 = 4;
     const GAP: u16 = 1;
     const EXTRA_HEIGHT: u16 = 4;
