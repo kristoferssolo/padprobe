@@ -1,4 +1,4 @@
-use crate::{ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState, StickGauge};
+use crate::{ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState};
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Rect},
@@ -55,6 +55,7 @@ impl Widget for GamepadWidget<'_> {
         }
 
         if let Some(areas) = controller_areas(area, clusters) {
+            render_controller_outline(area, buffer, self.border_style);
             for (cluster, area) in clusters.iter().zip(areas) {
                 render_overview_cluster(cluster, area, buffer, self);
             }
@@ -132,17 +133,32 @@ fn render_overview_stick(
     let ControlValue::Stick { x, y, pressed } = control.value() else {
         return false;
     };
-    let value_style = if pressed || x.hypot(y) > 0.15 {
+    let active = pressed || x.hypot(y) > 0.15;
+    let style = if active {
         widget.active_style
     } else {
         widget.idle_style
     };
-    StickGauge::new(cluster.title(), x, y)
-        .button(control.label(), pressed)
-        .gate_style(widget.border_style)
-        .marker_style(widget.active_style)
-        .value_style(value_style)
-        .render(area, buffer);
+    let lines = vertically_center(
+        vec![
+            Line::styled(
+                cluster.title().to_uppercase(),
+                widget.border_style.add_modifier(Modifier::BOLD),
+            )
+            .alignment(Alignment::Center),
+            Line::styled("╭─────╮", widget.border_style).alignment(Alignment::Center),
+            Line::styled(format!("│  {}  │", stick_direction(x, y)), style)
+                .alignment(Alignment::Center),
+            Line::styled("╰─────╯", widget.border_style).alignment(Alignment::Center),
+            Line::styled(
+                format!("{} {}", control.label(), if pressed { "●" } else { "○" }),
+                style,
+            )
+            .alignment(Alignment::Center),
+        ],
+        area.height,
+    );
+    Paragraph::new(lines).render(area, buffer);
     true
 }
 
@@ -156,10 +172,13 @@ fn overview_control_line(
             format!("{} {}", if pressed { "●" } else { "○" }, control.label()),
             pressed,
         ),
-        ControlValue::Trigger { value } => (
-            format!("{} {}", control.label(), trigger_bar(value)),
-            value.is_some_and(|value| value > 0.1),
-        ),
+        ControlValue::Trigger { value } => {
+            let active = value.is_some_and(|value| value > 0.1);
+            (
+                format!("{} {}", if active { "●" } else { "○" }, control.label()),
+                active,
+            )
+        }
         ControlValue::Stick { x, y, pressed } => (
             format!(
                 "{} {} {x:+.2}, {y:+.2}",
@@ -174,6 +193,46 @@ fn overview_control_line(
         ),
     };
     Line::styled(text, if active { active_style } else { idle_style }).alignment(Alignment::Center)
+}
+
+fn render_controller_outline(area: Rect, buffer: &mut Buffer, style: Style) {
+    if area.width < 44 || area.height < 18 {
+        return;
+    }
+
+    let left = area.x + 2;
+    let right = area.right().saturating_sub(3);
+    let top = area.y + 3;
+    let bottom = area.bottom().saturating_sub(2);
+    for x in left + 4..right.saturating_sub(3) {
+        buffer[(x, top)].set_char('─').set_style(style);
+    }
+    buffer[(left + 3, top)].set_char('╭').set_style(style);
+    buffer[(right - 3, top)].set_char('╮').set_style(style);
+    for y in top + 1..bottom.saturating_sub(1) {
+        buffer[(left, y)].set_char('│').set_style(style);
+        buffer[(right, y)].set_char('│').set_style(style);
+    }
+    buffer[(left, top + 1)].set_char('╭').set_style(style);
+    buffer[(right, top + 1)].set_char('╮').set_style(style);
+    buffer[(left, bottom - 1)].set_char('╰').set_style(style);
+    buffer[(right, bottom - 1)].set_char('╯').set_style(style);
+
+    let grip_width = area.width / 4;
+    for x in left + 1..left + grip_width {
+        buffer[(x, bottom)].set_char('─').set_style(style);
+    }
+    for x in right.saturating_sub(grip_width)..right {
+        buffer[(x, bottom)].set_char('─').set_style(style);
+    }
+    buffer[(left, bottom)].set_char('╰').set_style(style);
+    buffer[(left + grip_width, bottom)]
+        .set_char('╯')
+        .set_style(style);
+    buffer[(right - grip_width, bottom)]
+        .set_char('╰')
+        .set_style(style);
+    buffer[(right, bottom)].set_char('╯').set_style(style);
 }
 
 fn vertically_center(lines: Vec<Line<'static>>, height: u16) -> Vec<Line<'static>> {
@@ -487,7 +546,7 @@ mod tests {
 
         let line = overview_control_line(&control, Style::default(), Style::default());
 
-        assert_eq!(line.spans[0].content, "LT [░░░░░] 0.00");
+        assert_eq!(line.spans[0].content, "○ LT");
         assert!(line.width() <= 18);
     }
 
@@ -615,7 +674,7 @@ mod tests {
     }
 
     #[test]
-    fn semantic_overview_avoids_nested_cluster_borders() {
+    fn semantic_overview_renders_state_only_controller_art() {
         let state = GamepadState::new([ControlCluster::new("Left stick")
             .with_placement(ClusterPlacement::LeftStick)
             .with_control(Control::new(
@@ -637,11 +696,9 @@ mod tests {
             .map(ratatui::buffer::Cell::symbol)
             .collect::<String>();
         assert!(symbols.contains("LEFT STICK"));
-        assert!(
-            symbols
-                .chars()
-                .any(|symbol| ('\u{2800}'..='\u{28ff}').contains(&symbol))
-        );
+        assert!(symbols.contains("L3 ○"));
+        assert!(!symbols.contains("x +0.00"));
+        assert!(symbols.contains('─'));
         assert!(!symbols.contains('┌'));
     }
 }
