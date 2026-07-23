@@ -1,12 +1,14 @@
 mod capture;
 mod export;
-#[cfg(test)]
-mod tests;
 mod text;
 
 use crate::analysis::{ChecklistItem, DriftMetrics, RangeMetrics, TimingMetrics};
+#[cfg(test)]
+use crate::app::{App, DeviceMetadata};
 pub use export::{ExportedReports, ReportError, export};
 use serde::Serialize;
+#[cfg(test)]
+use std::time::SystemTime;
 
 pub const REPORT_SCHEMA_VERSION: u32 = 1;
 
@@ -89,4 +91,22 @@ impl DiagnosticReport {
     pub fn to_json(&self) -> serde_json::Result<String> {
         serde_json::to_string_pretty(self)
     }
+}
+
+#[cfg(test)]
+fn report_fixture() -> DiagnosticReport {
+    let mut app = App::new();
+    app.connect(
+        3,
+        DeviceMetadata {
+            name: "Fixture".to_owned(),
+            vendor_id: Some(0x1234),
+            product_id: Some(0x5678),
+            uuid: "fixture".to_owned(),
+            mapping: "SDL mappings".to_owned(),
+            power: "Wired".to_owned(),
+            rumble_supported: true,
+        },
+    );
+    DiagnosticReport::capture(&app, SystemTime::UNIX_EPOCH)
 }

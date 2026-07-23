@@ -53,3 +53,34 @@ fn write(path: &Path, contents: &[u8]) -> Result<(), ReportError> {
         source,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::DeviceMetadata;
+    use claims::assert_ok;
+    use tempfile::tempdir;
+
+    #[test]
+    fn export_writes_json_and_text_reports() {
+        let directory = assert_ok!(tempdir());
+        let mut app = App::new();
+        app.connect(
+            3,
+            DeviceMetadata {
+                name: "Fixture".to_owned(),
+                vendor_id: None,
+                product_id: None,
+                uuid: "fixture".to_owned(),
+                mapping: "driver".to_owned(),
+                power: "Unknown".to_owned(),
+                rumble_supported: false,
+            },
+        );
+
+        let exported = assert_ok!(export(&app, directory.path()));
+
+        assert!(exported.json.is_file());
+        assert!(exported.text.is_file());
+    }
+}

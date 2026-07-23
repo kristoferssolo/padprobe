@@ -1,3 +1,5 @@
+#[cfg(test)]
+use super::report_fixture;
 use super::{
     ApplicationReport, AxisReport, DeviceReport, DiagnosticReport, DiagnosticResults,
     ObservationReport, REPORT_SCHEMA_VERSION, ReportEvent,
@@ -170,4 +172,20 @@ fn is_warning(description: &str) -> bool {
     ]
     .iter()
     .any(|needle| lowercase.contains(needle))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use claims::assert_ok;
+
+    #[test]
+    fn json_report_has_versioned_schema_and_device() {
+        let report = report_fixture();
+        let json = assert_ok!(report.to_json());
+
+        assert!(json.contains("\"schema_version\": 1"));
+        assert!(json.contains("\"name\": \"Fixture\""));
+        assert!(json.contains("\"backend\": \"gilrs\""));
+    }
 }
