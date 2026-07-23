@@ -10,7 +10,7 @@ pub(super) fn render_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
     let controls = if app.event_search_state == crate::app::EventSearchState::Open {
         "event filter: type text | Enter apply | Esc clear"
     } else {
-        "q quit | ⇥ tab | d devices | x reset | r rumble | p pause | / filter | ? help"
+        "q quit | ⇥ tab | d devices | x reset | e export | r rumble | p pause | / filter | ? help"
     };
     let width = usize::from(area.width);
     let status_room = width.saturating_sub(controls.len() + 3);

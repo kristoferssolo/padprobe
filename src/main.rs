@@ -4,12 +4,15 @@ use gilrs::{EventType, Gilrs};
 use padprobe::{
     analysis::StickSide,
     app::{App, AppTab, DeviceMetadata, EventSearchState},
-    logging,
+    logging, report,
     rumble::RumbleTest,
     terminal::{self, TerminalSession},
     ui,
 };
-use std::time::{Duration, Instant};
+use std::{
+    path::Path,
+    time::{Duration, Instant},
+};
 use tracing::{debug, info, warn};
 
 const FRAME_INTERVAL: Duration = Duration::from_millis(33);
@@ -184,6 +187,7 @@ fn handle_key(
         KeyCode::Up if app.active_tab == AppTab::Dashboard => app.scroll_events_older(),
         KeyCode::Down if app.active_tab == AppTab::Dashboard => app.scroll_events_newer(),
         KeyCode::Char('x') => app.reset_selected_observations(),
+        KeyCode::Char('e') => export_report(app),
         KeyCode::Tab | KeyCode::Right => app.select_next_tab(),
         KeyCode::BackTab | KeyCode::Left => app.select_previous_tab(),
         KeyCode::Char('1') => app.active_tab = AppTab::Dashboard,
@@ -192,6 +196,20 @@ fn handle_key(
         KeyCode::Char('4') => app.active_tab = AppTab::Controls,
         KeyCode::Char('5') => app.active_tab = AppTab::Timing,
         _ => {}
+    }
+}
+
+fn export_report(app: &mut App) {
+    match report::export(app, Path::new(".")) {
+        Ok(exported) => app.record_notice(format!(
+            "Exported {} and {}",
+            exported.json.display(),
+            exported.text.display()
+        )),
+        Err(error) => {
+            warn!(%error, "could not export diagnostic report");
+            app.record_notice(format!("Report export failed: {error}"));
+        }
     }
 }
 
