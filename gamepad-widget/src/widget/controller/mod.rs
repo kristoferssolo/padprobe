@@ -1,10 +1,10 @@
 mod controls;
-#[cfg(test)]
-mod controls_tests;
 mod shell;
+mod stick;
 
-use self::controls::{render_art_diamond, render_art_stick, render_control_row, render_shoulder};
+use self::controls::{render_art_diamond, render_control_row, render_shoulder};
 use self::shell::render_shell;
+use self::stick::render_art_stick;
 use super::GamepadWidget;
 use crate::{ClusterPlacement, ControlCluster, GamepadState};
 use ratatui::{buffer::Buffer, layout::Rect};
