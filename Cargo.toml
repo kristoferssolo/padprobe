@@ -13,6 +13,7 @@ repository = "https://github.com/kristoferssolo/padprobe"
 homepage = "https://github.com/kristoferssolo/padprobe"
 keywords = ["gamepad", "controller", "hid"]
 categories = ["hardware-support", "command-line-utilities"]
+exclude = [".github/", ".gitignore", "justfile"]
 
 [dependencies]
 color-eyre = "0.6"

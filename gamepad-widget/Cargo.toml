@@ -6,12 +6,13 @@ authors = ["Kristofers Solo <dev@kristofers.xyz>"]
 license = "MIT OR Apache-2.0"
 description = "A backend-neutral Ratatui widget for displaying gamepad controls"
 repository = "https://github.com/kristoferssolo/padprobe"
+homepage = "https://github.com/kristoferssolo/padprobe/tree/main/gamepad-widget"
 readme = "README.md"
 keywords = ["gamepad", "controller", "ratatui", "tui"]
 categories = ["command-line-interface", "visualization"]
 
 [dependencies]
-ratatui = "0.30"
+ratatui = { version = "0.30", default-features = false }
 
 [lints]
 workspace = true
