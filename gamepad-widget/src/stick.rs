@@ -1,3 +1,4 @@
+use crate::GamepadTheme;
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Rect},
@@ -30,6 +31,7 @@ impl<'label> StickGauge<'label> {
     #[must_use]
     #[inline]
     pub fn new(label: &'label str, x: f32, y: f32) -> Self {
+        let theme = GamepadTheme::default();
         Self {
             label,
             button: None,
@@ -37,13 +39,22 @@ impl<'label> StickGauge<'label> {
             trace: &[],
             x: x.clamp(-1.0, 1.0),
             y: y.clamp(-1.0, 1.0),
-            gate_style: Style::default().fg(Color::DarkGray),
-            marker_style: Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
-            trace_style: Style::default().fg(Color::Green),
-            value_style: Style::default(),
+            gate_style: theme.border,
+            marker_style: theme.active,
+            trace_style: theme.trace,
+            value_style: theme.value,
         }
+    }
+
+    /// Applies a shared gamepad theme to the gauge.
+    #[must_use]
+    #[inline]
+    pub const fn theme(mut self, theme: GamepadTheme) -> Self {
+        self.gate_style = theme.border;
+        self.marker_style = theme.active;
+        self.trace_style = theme.trace;
+        self.value_style = theme.value;
+        self
     }
 
     /// Adds the stick-click control to the gauge summary.

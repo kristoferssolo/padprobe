@@ -1,8 +1,8 @@
-use crate::{ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState};
+use crate::{ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState, GamepadTheme};
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Rect},
-    style::{Color, Modifier, Style},
+    style::{Color, Style},
     symbols::Marker,
     text::{Line, Span},
     widgets::{
@@ -29,14 +29,23 @@ impl<'state> GamepadWidget<'state> {
     #[must_use]
     #[inline]
     pub fn new(state: &'state GamepadState) -> Self {
+        let theme = GamepadTheme::default();
         Self {
             state,
-            border_style: Style::default().fg(Color::DarkGray),
-            idle_style: Style::default(),
-            active_style: Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
+            border_style: theme.border,
+            idle_style: theme.idle,
+            active_style: theme.active,
         }
+    }
+
+    /// Applies a shared gamepad theme to the overview.
+    #[must_use]
+    #[inline]
+    pub const fn theme(mut self, theme: GamepadTheme) -> Self {
+        self.border_style = theme.border;
+        self.idle_style = theme.idle;
+        self.active_style = theme.active;
+        self
     }
 
     /// Sets the style used for the controller outline and cluster borders.
