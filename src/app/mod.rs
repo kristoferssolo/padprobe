@@ -503,6 +503,12 @@ impl App {
         self.devices.get(&id).map(|device| (id, device))
     }
 
+    #[must_use]
+    #[inline]
+    pub fn elapsed(&self) -> Duration {
+        self.started_at.elapsed()
+    }
+
     fn move_selection(&mut self, direction: isize) {
         let connected = self
             .device_order

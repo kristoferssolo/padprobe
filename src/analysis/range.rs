@@ -169,6 +169,15 @@ impl RangeTest {
         self.device_id
     }
 
+    #[must_use]
+    pub const fn result(&self) -> Option<&RangeMetrics> {
+        if let RangeState::Complete { metrics, .. } = &self.state {
+            Some(metrics)
+        } else {
+            None
+        }
+    }
+
     pub fn select_side(&mut self, side: StickSide) {
         if !matches!(self.state, RangeState::Recording { .. }) {
             self.side = side;
