@@ -11,6 +11,8 @@ The widget provides:
   coordinates, click state, observed traces, and optional metrics;
 - diamond layouts for D-pad and face buttons;
 - analog trigger bars;
+- reusable color and monochrome themes;
+- explicit automatic, controller, and grid layout policies;
 - a responsive grid fallback for narrow or short terminal areas.
 
 It has no controller-backend dependency. Applications translate input from
@@ -43,6 +45,19 @@ let state = GamepadState::new([
 frame.render_widget(GamepadWidget::new(&state), area);
 ```
 
+Use `GamepadLayout::Grid` to always show boxed clusters, or
+`GamepadLayout::Controller` to prefer the controller silhouette while retaining
+the safe grid fallback for unsupported states:
+
+```rust
+frame.render_widget(
+    GamepadWidget::new(&state)
+        .layout(GamepadLayout::Grid)
+        .theme(GamepadTheme::monochrome()),
+    area,
+);
+```
+
 `StickGauge` is also available independently when an application needs a
 larger dedicated analog-stick view:
 
@@ -59,6 +74,13 @@ The gauge renders Ratatui canvas `Circle` and `Line` shapes using the 2×4 dot
 grid in each Unicode Braille cell. Its viewport preserves a two-columns-per-row
 terminal aspect ratio so the gate remains circular as the available area
 changes.
+
+Runnable examples render into Ratatui's test backend and print the result:
+
+```console
+cargo run -p gamepad-widget --example controller
+cargo run -p gamepad-widget --example stick
+```
 
 The unified controller layout is used when the available area is at least
 48×25 cells. Smaller areas, or states containing extra unplaced controls, use
