@@ -1,4 +1,6 @@
 use super::{DiagnosticReport, DiagnosticResults};
+#[cfg(test)]
+use super::{ReportEvent, report_fixture};
 use crate::analysis::ChecklistStatus;
 use std::fmt::{self, Write as _};
 
@@ -153,5 +155,34 @@ fn joined_or_none(values: &[String]) -> String {
         "none".to_owned()
     } else {
         values.join(", ")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn text_report_states_measurement_limits() {
+        let text = report_fixture().to_text();
+
+        assert!(text.contains("PadProbe diagnostic report"));
+        assert!(text.contains("Observed event timing is not an exact hardware polling rate"));
+    }
+
+    #[test]
+    fn text_report_includes_recent_warnings_and_events() {
+        let mut report = report_fixture();
+        report.observations.warnings = vec!["Controller disconnected".to_owned()];
+        report.observations.recent_events = vec![ReportEvent {
+            elapsed_seconds: 1.25,
+            device_id: Some(3),
+            description: "ButtonPressed(South)".to_owned(),
+        }];
+
+        let text = report.to_text();
+
+        assert!(text.contains("Warnings\n- Controller disconnected"));
+        assert!(text.contains("Recent events\n1.250  ButtonPressed(South)"));
     }
 }
