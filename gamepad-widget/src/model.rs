@@ -5,7 +5,7 @@ use std::slice::Iter;
 /// Controls are organized into [`ControlCluster`] values so renderers can
 /// preserve familiar physical groupings without depending on a specific
 /// controller model.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct GamepadState {
     clusters: Vec<ControlCluster>,
 }
@@ -83,7 +83,7 @@ impl<'state> IntoIterator for &'state GamepadState {
 ///
 /// A cluster can identify its approximate physical [`ClusterPlacement`] while
 /// retaining its insertion order for generic or unknown layouts.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ControlCluster {
     title: String,
     controls: Vec<Control>,
@@ -155,7 +155,7 @@ impl Extend<Control> for ControlCluster {
 /// Placements let [`crate::GamepadWidget`] arrange common controls like a
 /// familiar gamepad while [`Self::Flow`] and [`Self::Extra`] accommodate
 /// generic or vendor-specific controls.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum ClusterPlacement {
     /// No physical location is known; place the cluster in normal flow order.
@@ -180,7 +180,7 @@ pub enum ClusterPlacement {
 }
 
 /// A labeled gamepad input and its current value.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Control {
     label: String,
     value: ControlValue,
@@ -215,7 +215,7 @@ impl Control {
 /// Values are backend-neutral presentation data. Producers should generally
 /// normalize axes and stick coordinates to `-1.0..=1.0`, and trigger values to
 /// `0.0..=1.0`.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub enum ControlValue {
     /// A digital button.

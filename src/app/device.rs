@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 const STICK_TRACE_CAPACITY: usize = 256;
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct DeviceMetadata {
     pub name: String,
     pub vendor_id: Option<u16>,
@@ -34,7 +34,7 @@ impl DeviceMetadata {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AxisState {
     pub current: f32,
     pub minimum: f32,
@@ -69,7 +69,7 @@ impl AxisState {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct StickTrace {
     points: Vec<(f64, f64)>,
 }
@@ -94,7 +94,7 @@ impl StickTrace {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct DeviceState {
     pub metadata: DeviceMetadata,
     pub connected: bool,

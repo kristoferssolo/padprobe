@@ -16,7 +16,7 @@ use ratatui::{
 /// In sufficiently large areas, controls with semantic
 /// [`ClusterPlacement`] values are arranged in a controller-shaped layout.
 /// Smaller areas and generic clusters fall back to a responsive grid.
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct GamepadWidget<'state> {
     state: &'state GamepadState,
     layout: GamepadLayout,
@@ -26,7 +26,7 @@ pub struct GamepadWidget<'state> {
 }
 
 /// The layout policy used by [`GamepadWidget`].
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum GamepadLayout {
     /// Uses the controller layout when all controls fit, otherwise a grid.
