@@ -27,6 +27,7 @@ pub struct GamepadWidget<'state> {
 
 /// The layout policy used by [`GamepadWidget`].
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum GamepadLayout {
     /// Uses the controller layout when all controls fit, otherwise a grid.
     #[default]

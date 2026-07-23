@@ -2,6 +2,7 @@ use ratatui::style::{Color, Modifier, Style};
 
 /// Styles shared by the gamepad overview and analog-stick gauge.
 #[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
 pub struct GamepadTheme {
     /// Controller outlines, cluster borders, and stick gates.
     pub border: Style,
