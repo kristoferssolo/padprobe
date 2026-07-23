@@ -97,3 +97,23 @@ fn standard_deviation(values: &[f64], mean: f64) -> f64 {
         / f64::from(u32::try_from(values.len()).unwrap_or(u32::MAX));
     variance.sqrt()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use claims::assert_some;
+
+    #[test]
+    fn drift_metrics_describe_resting_samples() {
+        let metrics = assert_some!(DriftMetrics::calculate(
+            &[(0.01, -0.02), (0.03, 0.0), (0.02, -0.01)],
+            Duration::from_secs(10),
+        ));
+
+        assert_eq!(metrics.sample_count, 3);
+        assert!((metrics.mean_x - 0.02).abs() < 1e-6);
+        assert!((metrics.median_y - -0.01).abs() < 1e-6);
+        assert!(metrics.maximum_radial > metrics.mean_radial);
+        assert!(metrics.suggested_inner_deadzone >= metrics.percentile_95_radial);
+    }
+}
