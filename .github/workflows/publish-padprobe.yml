@@ -158,4 +158,4 @@ jobs:
               args+=(--verify-tag)
           fi
 
-          gh release create "${args[@]}"
+          gh release create --repo "$GITHUB_REPOSITORY" "${args[@]}"
