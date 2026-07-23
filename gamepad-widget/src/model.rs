@@ -92,6 +92,7 @@ impl ControlCluster {
 /// familiar gamepad while [`Self::Flow`] and [`Self::Extra`] accommodate
 /// generic or vendor-specific controls.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum ClusterPlacement {
     /// No physical location is known; place the cluster in normal flow order.
     #[default]
@@ -151,6 +152,7 @@ impl Control {
 /// normalize axes and stick coordinates to `-1.0..=1.0`, and trigger values to
 /// `0.0..=1.0`.
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[non_exhaustive]
 pub enum ControlValue {
     /// A digital button.
     Button {
