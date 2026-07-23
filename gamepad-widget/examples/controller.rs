@@ -79,21 +79,18 @@ fn shoulder(
 ) -> ControlCluster {
     ControlCluster::new(title)
         .with_placement(placement)
-        .with_control(button(bumper, bumper_pressed))
-        .with_control(Control::new(
-            trigger,
-            ControlValue::Trigger {
-                value: Some(trigger_value),
-            },
-        ))
+        .with_controls([
+            button(bumper, bumper_pressed),
+            Control::new(trigger, ControlValue::trigger(trigger_value)),
+        ])
 }
 
 fn menu() -> ControlCluster {
-    [("Select", false), ("Mode", true), ("Start", false)]
-        .into_iter()
-        .fold(
-            ControlCluster::new("Menu").with_placement(ClusterPlacement::Menu),
-            |cluster, (label, pressed)| cluster.with_control(button(label, pressed)),
+    ControlCluster::new("Menu")
+        .with_placement(ClusterPlacement::Menu)
+        .with_controls(
+            [("Select", false), ("Mode", true), ("Start", false)]
+                .map(|(label, pressed)| button(label, pressed)),
         )
 }
 
@@ -107,7 +104,7 @@ fn stick(
 ) -> ControlCluster {
     ControlCluster::new(title)
         .with_placement(placement)
-        .with_control(Control::new(label, ControlValue::Stick { x, y, pressed }))
+        .with_control(Control::new(label, ControlValue::stick(x, y, pressed)))
 }
 
 fn diamond(
@@ -115,14 +112,13 @@ fn diamond(
     placement: ClusterPlacement,
     controls: [(&str, bool); 4],
 ) -> ControlCluster {
-    controls.into_iter().fold(
-        ControlCluster::new(title).with_placement(placement),
-        |cluster, (label, pressed)| cluster.with_control(button(label, pressed)),
-    )
+    ControlCluster::new(title)
+        .with_placement(placement)
+        .with_controls(controls.map(|(label, pressed)| button(label, pressed)))
 }
 
 fn button(label: &str, pressed: bool) -> Control {
-    Control::new(label, ControlValue::Button { pressed })
+    Control::new(label, ControlValue::button(pressed))
 }
 
 fn print_buffer(buffer: &ratatui::buffer::Buffer) {

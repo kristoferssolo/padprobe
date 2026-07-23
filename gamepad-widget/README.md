@@ -24,22 +24,12 @@ use gamepad_widget::prelude::*;
 let state = GamepadState::new([
     ControlCluster::new("Face buttons")
         .with_placement(ClusterPlacement::Face)
-        .with_control(Control::new(
-            "North",
-            ControlValue::Button { pressed: false },
-        ))
-        .with_control(Control::new(
-            "West",
-            ControlValue::Button { pressed: false },
-        ))
-        .with_control(Control::new(
-            "East",
-            ControlValue::Button { pressed: true },
-        ))
-        .with_control(Control::new(
-            "South",
-            ControlValue::Button { pressed: false },
-        )),
+        .with_controls([
+            Control::new("North", ControlValue::button(false)),
+            Control::new("West", ControlValue::button(false)),
+            Control::new("East", ControlValue::button(true)),
+            Control::new("South", ControlValue::button(false)),
+        ]),
 ]);
 
 frame.render_widget(GamepadWidget::new(&state), area);
