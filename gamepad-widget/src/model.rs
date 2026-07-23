@@ -115,6 +115,13 @@ impl ControlCluster {
         self
     }
 
+    /// Appends controls from an iterator to the cluster.
+    #[must_use]
+    pub fn with_controls(mut self, controls: impl IntoIterator<Item = Control>) -> Self {
+        self.extend(controls);
+        self
+    }
+
     /// Returns the cluster's display title.
     #[must_use]
     #[inline]
@@ -134,6 +141,12 @@ impl ControlCluster {
     #[inline]
     pub const fn placement(&self) -> ClusterPlacement {
         self.placement
+    }
+}
+
+impl Extend<Control> for ControlCluster {
+    fn extend<T: IntoIterator<Item = Control>>(&mut self, iter: T) {
+        self.controls.extend(iter);
     }
 }
 
@@ -261,6 +274,23 @@ mod tests {
         let cluster = ControlCluster::new("Generic");
 
         assert_eq!(cluster.placement(), ClusterPlacement::Flow);
+    }
+
+    #[test]
+    fn cluster_supports_bulk_control_building() {
+        let mut cluster = ControlCluster::new("Face").with_controls([
+            Control::new("North", ControlValue::Button { pressed: false }),
+            Control::new("East", ControlValue::Button { pressed: true }),
+        ]);
+        cluster.extend([Control::new(
+            "South",
+            ControlValue::Button { pressed: false },
+        )]);
+
+        assert_eq!(cluster.controls().len(), 3);
+        assert_eq!(cluster.controls()[0].label(), "North");
+        assert_eq!(cluster.controls()[1].label(), "East");
+        assert_eq!(cluster.controls()[2].label(), "South");
     }
 
     #[test]
