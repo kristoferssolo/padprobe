@@ -31,13 +31,13 @@ pub enum ReportError {
     },
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ExportedReports {
     pub json: PathBuf,
     pub text: PathBuf,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct DiagnosticReport {
     pub schema_version: u32,
     pub application: ApplicationReport,
@@ -47,7 +47,7 @@ pub struct DiagnosticReport {
     pub limitations: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ApplicationReport {
     pub name: String,
     pub version: String,
@@ -59,7 +59,7 @@ pub struct ApplicationReport {
     pub session_duration_seconds: f64,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct DeviceReport {
     pub backend_id: usize,
     pub name: String,
@@ -72,7 +72,7 @@ pub struct DeviceReport {
     pub rumble_supported: bool,
 }
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct ObservationReport {
     pub axes: Vec<AxisReport>,
     pub observed_buttons: Vec<String>,
@@ -82,7 +82,7 @@ pub struct ObservationReport {
     pub recent_events: Vec<ReportEvent>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct AxisReport {
     pub name: String,
     pub current: f32,
@@ -91,14 +91,14 @@ pub struct AxisReport {
     pub changes: u64,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ReportEvent {
     pub elapsed_seconds: f64,
     pub device_id: Option<usize>,
     pub description: String,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct DiagnosticResults {
     pub drift: Option<DriftMetrics>,
     pub range: Option<RangeMetrics>,

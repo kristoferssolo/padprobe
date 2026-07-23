@@ -12,7 +12,7 @@ use ratatui::{
 };
 
 /// A high-resolution analog-stick gauge rendered with Unicode Braille cells.
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct StickGauge<'label> {
     label: &'label str,
     button: Option<(&'label str, bool)>,

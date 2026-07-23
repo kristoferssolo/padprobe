@@ -14,7 +14,7 @@ use std::{
 pub const EVENT_CAPACITY: usize = 256;
 const FIRST_EVENT_SEQUENCE: u64 = 1;
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
 pub enum AppTab {
     #[default]
     Dashboard,
@@ -24,7 +24,7 @@ pub enum AppTab {
     Timing,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
 pub enum EventKindFilter {
     #[default]
     All,
@@ -33,14 +33,14 @@ pub enum EventKindFilter {
     System,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
 pub enum EventDeviceFilter {
     #[default]
     All,
     Selected,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
 pub enum EventSearchState {
     #[default]
     Closed,
@@ -89,7 +89,7 @@ impl AppTab {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct EventEntry {
     pub sequence: u64,
     pub elapsed: Duration,

@@ -6,7 +6,7 @@ const SECTOR_COUNT_F64: f64 = 36.0;
 const MAX_RANGE_SAMPLES: usize = 4_096;
 const EDGE_THRESHOLD: f64 = 0.5;
 
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct RangeMetrics {
     pub sample_count: usize,
     pub minimum_x: f64,
@@ -115,7 +115,7 @@ fn sector_index(x: f64, y: f64) -> usize {
     ((angle / std::f64::consts::TAU * SECTOR_COUNT_F64).floor() as usize).min(SECTOR_COUNT - 1)
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum RangeView<'test> {
     Ready,
     Recording {
@@ -128,7 +128,7 @@ pub enum RangeView<'test> {
     },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 enum RangeState {
     Ready,
     Recording {
@@ -141,7 +141,7 @@ enum RangeState {
     },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct RangeTest {
     side: StickSide,
     device_id: Option<usize>,

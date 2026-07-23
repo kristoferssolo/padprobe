@@ -1,12 +1,12 @@
 use serde::Serialize;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TimingSample {
     pub elapsed_seconds: f64,
     pub signature: String,
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize)]
 pub struct TimingHistogram {
     pub under_2_ms: usize,
     pub from_2_to_5_ms: usize,
@@ -16,7 +16,7 @@ pub struct TimingHistogram {
     pub at_least_50_ms: usize,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct TimingMetrics {
     pub event_count: usize,
     pub interval_count: usize,

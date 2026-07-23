@@ -6,7 +6,7 @@ const SAMPLE_DURATION: Duration = Duration::from_secs(10);
 const SAMPLE_INTERVAL: Duration = Duration::from_millis(10);
 const MAX_SAMPLES: usize = 2_000;
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Serialize)]
 pub enum StickSide {
     #[default]
     Left,
@@ -23,7 +23,7 @@ impl StickSide {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct DriftMetrics {
     pub duration_seconds: f64,
     pub sample_count: usize,
@@ -97,7 +97,7 @@ impl DriftMetrics {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum DriftView<'metrics> {
     Ready,
     Countdown {
@@ -110,7 +110,7 @@ pub enum DriftView<'metrics> {
     Complete(&'metrics DriftMetrics),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 enum DriftState {
     Ready,
     Countdown {
@@ -124,7 +124,7 @@ enum DriftState {
     Complete(DriftMetrics),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct DriftTest {
     side: StickSide,
     device_id: Option<usize>,

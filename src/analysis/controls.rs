@@ -24,7 +24,7 @@ const EXPECTED_CONTROLS: &[(&str, &str)] = &[
     ("axis:RightStickY", "Right stick vertical"),
 ];
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Serialize)]
 pub enum ChecklistStatus {
     #[default]
     Pending,
@@ -32,7 +32,7 @@ pub enum ChecklistStatus {
     Skipped,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub struct ChecklistItem {
     pub key: String,
     pub label: String,
@@ -41,7 +41,7 @@ pub struct ChecklistItem {
     pub unexpected: bool,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ControlChecklist {
     device_id: Option<usize>,
     items: Vec<ChecklistItem>,
