@@ -157,3 +157,32 @@ impl DriftTest {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_samples_current_state_after_countdown() {
+        let start = Instant::now();
+        let mut test = DriftTest::default();
+        test.start(7, start);
+
+        test.tick(start + COUNTDOWN_DURATION, Some((0.01, 0.02)));
+        assert!(matches!(
+            test.view(start + COUNTDOWN_DURATION),
+            DriftView::Sampling {
+                sample_count: 1,
+                ..
+            }
+        ));
+        assert!(test.tick(
+            start + COUNTDOWN_DURATION + SAMPLE_DURATION,
+            Some((0.01, 0.02))
+        ));
+        assert!(matches!(
+            test.view(start + COUNTDOWN_DURATION + SAMPLE_DURATION),
+            DriftView::Complete(_)
+        ));
+    }
+}

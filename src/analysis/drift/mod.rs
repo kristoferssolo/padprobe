@@ -1,7 +1,5 @@
 mod metrics;
 mod session;
-#[cfg(test)]
-mod tests;
 
 pub use metrics::DriftMetrics;
 use serde::Serialize;
