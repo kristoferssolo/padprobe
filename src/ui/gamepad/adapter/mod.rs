@@ -1,6 +1,15 @@
+mod controls;
+
+use self::controls::{
+    button_control, dpad_control, extra_controls, stick_control, trigger_control,
+};
 use crate::app::DeviceState;
+#[cfg(test)]
+use crate::app::{DeviceMetadata, StickTrace};
 use gamepad_widget::prelude::*;
 use gilrs::{Axis, Button};
+#[cfg(test)]
+use std::collections::HashMap;
 
 pub(super) fn gamepad_state(device: &DeviceState) -> GamepadState {
     let mut clusters = vec![
@@ -85,99 +94,51 @@ pub(super) fn gamepad_state(device: &DeviceState) -> GamepadState {
     GamepadState::new(clusters)
 }
 
-fn button_control(label: &str, device: &DeviceState, button: Button) -> Control {
-    Control::new(
-        label,
-        ControlValue::Button {
-            pressed: pressed(device, button),
+#[cfg(test)]
+fn device() -> DeviceState {
+    DeviceState {
+        metadata: DeviceMetadata {
+            name: "fixture".to_owned(),
+            vendor_id: None,
+            product_id: None,
+            uuid: String::new(),
+            mapping: "fixture".to_owned(),
+            power: "unknown".to_owned(),
+            rumble_supported: false,
         },
-    )
-}
-
-fn stick_control(
-    label: &str,
-    device: &DeviceState,
-    x_axis: Axis,
-    y_axis: Axis,
-    button: Button,
-) -> Control {
-    Control::new(
-        label,
-        ControlValue::Stick {
-            x: axis_value(device, x_axis),
-            y: axis_value(device, y_axis),
-            pressed: pressed(device, button),
-        },
-    )
-}
-
-fn trigger_control(label: &str, device: &DeviceState, axis: Axis, button: Button) -> Control {
-    let value = device
-        .button_values
-        .get(&button)
-        .copied()
-        .or_else(|| {
-            device
-                .axes
-                .get(&axis)
-                .map(|state| state.current.midpoint(1.0))
-        })
-        .or_else(|| device.buttons.get(&button).copied().map(f32::from))
-        .unwrap_or_default();
-    Control::new(label, ControlValue::Trigger { value: Some(value) })
-}
-
-fn dpad_control(
-    label: &str,
-    device: &DeviceState,
-    button: Button,
-    axis: Axis,
-    direction: f32,
-) -> Control {
-    let axis_pressed = device
-        .axes
-        .get(&axis)
-        .is_some_and(|state| state.current * direction > 0.5);
-    Control::new(
-        label,
-        ControlValue::Button {
-            pressed: pressed(device, button) || axis_pressed,
-        },
-    )
-}
-
-fn extra_controls(device: &DeviceState) -> ControlCluster {
-    let mut extras =
-        ControlCluster::new("Extra / unmapped").with_placement(ClusterPlacement::Extra);
-    for (label, button) in [
-        ("C", Button::C),
-        ("Z", Button::Z),
-        ("Unknown", Button::Unknown),
-    ] {
-        if device.buttons.contains_key(&button) {
-            extras = extras.with_control(button_control(label, device, button));
-        }
+        connected: true,
+        buttons: HashMap::new(),
+        button_values: HashMap::new(),
+        axes: HashMap::new(),
+        left_stick_trace: StickTrace::default(),
+        right_stick_trace: StickTrace::default(),
     }
-    if let Some(axis) = device.axes.get(&Axis::Unknown) {
-        extras = extras.with_control(Control::new(
-            "Unknown axis",
-            ControlValue::Axis {
-                value: axis.current,
-            },
-        ));
-    }
-    extras
-}
-
-#[inline]
-fn pressed(device: &DeviceState, button: Button) -> bool {
-    device.buttons.get(&button).copied().unwrap_or(false)
-}
-
-#[inline]
-fn axis_value(device: &DeviceState, axis: Axis) -> f32 {
-    device.axes.get(&axis).map_or(0.0, |state| state.current)
 }
 
 #[cfg(test)]
-mod tests;
+mod tests {
+    use super::*;
+
+    #[test]
+    fn controls_are_grouped_by_controller_role() {
+        let state = gamepad_state(&device());
+        let placements = state
+            .clusters()
+            .iter()
+            .map(ControlCluster::placement)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            placements,
+            [
+                ClusterPlacement::LeftShoulder,
+                ClusterPlacement::Menu,
+                ClusterPlacement::RightShoulder,
+                ClusterPlacement::LeftStick,
+                ClusterPlacement::Face,
+                ClusterPlacement::DPad,
+                ClusterPlacement::RightStick,
+            ]
+        );
+    }
+}
