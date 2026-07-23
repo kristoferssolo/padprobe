@@ -1,5 +1,4 @@
-#[cfg(test)]
-mod tests;
+mod stick;
 
 use crate::{Control, ControlCluster, ControlValue};
 use ratatui::{
@@ -7,6 +6,8 @@ use ratatui::{
     style::Style,
     text::{Line, Span},
 };
+use stick::stick_direction;
+pub(super) use stick::stick_lines;
 
 pub(super) fn control_span(
     control: &Control,
@@ -71,66 +72,6 @@ fn button_span(control: &Control, idle_style: Style, active_style: Style) -> Spa
     )
 }
 
-pub(super) fn stick_lines(
-    cluster: &ControlCluster,
-    idle_style: Style,
-    active_style: Style,
-) -> Vec<Line<'static>> {
-    let [control] = cluster.controls() else {
-        return control_lines(cluster, idle_style, active_style);
-    };
-    let value = control.value();
-    let ControlValue::Stick { x, y, pressed } = value else {
-        return control_lines(cluster, idle_style, active_style);
-    };
-    let magnitude = x.hypot(y);
-    let style = if value.is_active() {
-        active_style
-    } else {
-        idle_style
-    };
-    let mut lines = stick_plot(x, y)
-        .into_iter()
-        .map(|line| Line::styled(line, style).alignment(Alignment::Center))
-        .collect::<Vec<_>>();
-    lines.push(Line::styled(format!("x {x:+.2}  y {y:+.2}"), style).alignment(Alignment::Center));
-    lines.push(
-        Line::styled(
-            format!(
-                "r {magnitude:.2}  {} {}",
-                control.label(),
-                if pressed { "●" } else { "○" }
-            ),
-            style,
-        )
-        .alignment(Alignment::Center),
-    );
-    lines
-}
-
-#[allow(
-    clippy::cast_possible_truncation,
-    reason = "clamped stick coordinates map to fixed, in-bounds plot indices"
-)]
-fn stick_plot(x: f32, y: f32) -> Vec<String> {
-    let mut rows = [
-        "  ╭───────╮  ".chars().collect::<Vec<_>>(),
-        " ╱         ╲ ".chars().collect(),
-        "│           │".chars().collect(),
-        "│           │".chars().collect(),
-        "│           │".chars().collect(),
-        " ╲         ╱ ".chars().collect(),
-        "  ╰───────╯  ".chars().collect(),
-    ];
-    let column = usize::try_from(6_i32 + (x.clamp(-1.0, 1.0) * 4.0).round() as i32).unwrap_or(6);
-    let row = usize::try_from(3_i32 - (y.clamp(-1.0, 1.0) * 2.0).round() as i32).unwrap_or(3);
-    rows[row][column] = if x.hypot(y) > 0.05 { '●' } else { '·' };
-
-    rows.into_iter()
-        .map(|characters| characters.into_iter().collect())
-        .collect()
-}
-
 fn control_line(control: &Control, idle_style: Style, active_style: Style) -> Line<'static> {
     let control_value = control.value();
     let value = match control_value {
@@ -168,17 +109,59 @@ fn trigger_bar(value: Option<f32>) -> String {
     )
 }
 
-fn stick_direction(x: f32, y: f32) -> char {
-    const THRESHOLD: f32 = 0.25;
-    match (x, y) {
-        (x, y) if x < -THRESHOLD && y > THRESHOLD => '↖',
-        (x, y) if x > THRESHOLD && y > THRESHOLD => '↗',
-        (x, y) if x < -THRESHOLD && y < -THRESHOLD => '↙',
-        (x, y) if x > THRESHOLD && y < -THRESHOLD => '↘',
-        (x, _) if x < -THRESHOLD => '←',
-        (x, _) if x > THRESHOLD => '→',
-        (_, y) if y > THRESHOLD => '↑',
-        (_, y) if y < -THRESHOLD => '↓',
-        _ => '·',
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ClusterPlacement;
+
+    #[test]
+    fn trigger_bar_handles_unknown_and_clamps_values() {
+        assert_eq!(trigger_bar(None), "[·····] n/a");
+        assert_eq!(trigger_bar(Some(-1.0)), "[░░░░░] 0.00");
+        assert_eq!(trigger_bar(Some(1.5)), "[█████] 1.00");
+    }
+
+    #[test]
+    fn controller_control_span_hides_exact_trigger_value() {
+        let control = Control::new("LT", ControlValue::trigger(0.0));
+
+        let span = control_span(&control, Style::default(), Style::default());
+
+        assert_eq!(span.content, "○ LT");
+    }
+
+    #[test]
+    fn diamond_places_cardinal_controls_on_three_rows() {
+        let cluster = ControlCluster::new("Face")
+            .with_placement(ClusterPlacement::Face)
+            .with_controls([
+                Control::new("North", ControlValue::button(false)),
+                Control::new("West", ControlValue::button(false)),
+                Control::new("East", ControlValue::button(true)),
+                Control::new("South", ControlValue::button(false)),
+            ]);
+
+        let lines = diamond_lines(&cluster, Style::default(), Style::default());
+
+        assert_eq!(lines[0].spans[0].content, "○ North");
+        assert_eq!(lines[1].spans[0].content, "○ West");
+        assert_eq!(lines[1].spans[2].content, "● East");
+        assert_eq!(lines[2].spans[0].content, "○ South");
+    }
+
+    #[test]
+    fn compact_controls_are_centered_in_tall_clusters() {
+        let lines = vertically_center(
+            vec![
+                Line::from("north"),
+                Line::from("middle"),
+                Line::from("south"),
+            ],
+            9,
+        );
+
+        assert_eq!(lines.len(), 6);
+        assert!(lines[0].spans.is_empty());
+        assert_eq!(lines[3].spans[0].content, "north");
     }
 }
