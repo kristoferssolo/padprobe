@@ -290,12 +290,12 @@ fn render_shoulder(
         );
         return;
     };
-    let trigger_style = if control_active(trigger) {
+    let trigger_style = if trigger.value().is_active() {
         widget.active_style
     } else {
         widget.border_style
     };
-    let bumper_style = if control_active(bumper) {
+    let bumper_style = if bumper.value().is_active() {
         widget.active_style
     } else {
         widget.border_style
@@ -363,15 +363,16 @@ fn render_art_stick(
     let [control] = cluster.controls() else {
         return;
     };
+    let value = control.value();
     let ControlValue::Stick {
         x,
         y: axis_y,
         pressed,
-    } = control.value()
+    } = value
     else {
         return;
     };
-    let style = if pressed || x.hypot(axis_y) > 0.15 {
+    let style = if value.is_active() {
         widget.active_style
     } else {
         widget.idle_style
@@ -423,21 +424,11 @@ fn render_art_diamond(
 }
 
 fn control_span(control: &Control, idle_style: Style, active_style: Style) -> Span<'static> {
-    let active = control_active(control);
+    let active = control.value().is_active();
     Span::styled(
         format!("{} {}", if active { "●" } else { "○" }, control.label()),
         if active { active_style } else { idle_style },
     )
-}
-
-#[inline]
-fn control_active(control: &Control) -> bool {
-    match control.value() {
-        ControlValue::Button { pressed } => pressed,
-        ControlValue::Trigger { value } => value.is_some_and(|value| value > 0.1),
-        ControlValue::Stick { x, y, pressed } => pressed || x.hypot(y) > 0.15,
-        ControlValue::Axis { value } => value.abs() > 0.15,
-    }
 }
 
 fn vertically_center(lines: Vec<Line<'static>>, height: u16) -> Vec<Line<'static>> {
@@ -499,11 +490,12 @@ fn stick_lines(
     let [control] = cluster.controls() else {
         return control_lines(cluster, idle_style, active_style);
     };
-    let ControlValue::Stick { x, y, pressed } = control.value() else {
+    let value = control.value();
+    let ControlValue::Stick { x, y, pressed } = value else {
         return control_lines(cluster, idle_style, active_style);
     };
     let magnitude = x.hypot(y);
-    let style = if pressed || magnitude > 0.15 {
+    let style = if value.is_active() {
         active_style
     } else {
         idle_style
@@ -551,20 +543,22 @@ fn stick_plot(x: f32, y: f32) -> Vec<String> {
 }
 
 fn control_line(control: &Control, idle_style: Style, active_style: Style) -> Line<'static> {
-    let (value, active) = match control.value() {
-        ControlValue::Button { pressed } => (if pressed { "●" } else { "○" }.to_owned(), pressed),
-        ControlValue::Stick { x, y, pressed } => (
-            format!("{} x {x:+.2} y {y:+.2}", stick_direction(x, y)),
-            pressed || x.hypot(y) > 0.15,
-        ),
-        ControlValue::Trigger { value } => {
-            (trigger_bar(value), value.is_some_and(|value| value > 0.1))
+    let control_value = control.value();
+    let value = match control_value {
+        ControlValue::Button { pressed } => if pressed { "●" } else { "○" }.to_owned(),
+        ControlValue::Stick { x, y, .. } => {
+            format!("{} x {x:+.2} y {y:+.2}", stick_direction(x, y))
         }
-        ControlValue::Axis { value } => (format!("{value:+.3}"), value.abs() > 0.15),
+        ControlValue::Trigger { value } => trigger_bar(value),
+        ControlValue::Axis { value } => format!("{value:+.3}"),
     };
     Line::styled(
         format!("{:<8} {value}", control.label()),
-        if active { active_style } else { idle_style },
+        if control_value.is_active() {
+            active_style
+        } else {
+            idle_style
+        },
     )
 }
 
