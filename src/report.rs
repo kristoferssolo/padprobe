@@ -220,6 +220,21 @@ impl DiagnosticReport {
                 joined_or_none(&self.observations.unknown_controls),
             ),
         );
+        if !self.observations.warnings.is_empty() {
+            text.push_str("\nWarnings\n");
+            for warning in &self.observations.warnings {
+                append(&mut text, format_args!("- {warning}\n"));
+            }
+        }
+        if !self.observations.recent_events.is_empty() {
+            text.push_str("\nRecent events\n");
+            for event in &self.observations.recent_events {
+                append(
+                    &mut text,
+                    format_args!("{:.3}  {}\n", event.elapsed_seconds, event.description),
+                );
+            }
+        }
         append_diagnostics(&mut text, &self.diagnostics);
         text.push_str("\nLimitations\n");
         for limitation in &self.limitations {
@@ -483,6 +498,22 @@ mod tests {
 
         assert!(text.contains("PadProbe diagnostic report"));
         assert!(text.contains("Observed event timing is not an exact hardware polling rate"));
+    }
+
+    #[test]
+    fn text_report_includes_recent_warnings_and_events() {
+        let mut report = report();
+        report.observations.warnings = vec!["Controller disconnected".to_owned()];
+        report.observations.recent_events = vec![ReportEvent {
+            elapsed_seconds: 1.25,
+            device_id: Some(3),
+            description: "ButtonPressed(South)".to_owned(),
+        }];
+
+        let text = report.to_text();
+
+        assert!(text.contains("Warnings\n- Controller disconnected"));
+        assert!(text.contains("Recent events\n1.250  ButtonPressed(South)"));
     }
 
     #[test]
