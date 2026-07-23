@@ -1,15 +1,10 @@
 use super::super::{GamepadWidget, controls::control_span};
-use crate::{ControlCluster, ControlValue};
+use crate::ControlCluster;
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Rect},
-    style::Color,
-    symbols::Marker,
     text::{Line, Span},
-    widgets::{
-        Paragraph, Widget,
-        canvas::{Canvas, Circle},
-    },
+    widgets::{Paragraph, Widget},
 };
 
 pub(super) fn render_shoulder(
@@ -91,61 +86,6 @@ pub(super) fn render_control_row(
     Paragraph::new(Line::from(spans).alignment(Alignment::Center)).render(area, buffer);
 }
 
-pub(super) fn render_art_stick(
-    cluster: Option<&ControlCluster>,
-    center: u16,
-    y: u16,
-    buffer: &mut Buffer,
-    widget: GamepadWidget<'_>,
-) {
-    let Some(cluster) = cluster else {
-        return;
-    };
-    let [control] = cluster.controls() else {
-        return;
-    };
-    let value = control.value();
-    let ControlValue::Stick {
-        x,
-        y: axis_y,
-        pressed,
-    } = value
-    else {
-        return;
-    };
-    let style = if value.is_active() {
-        widget.active_style
-    } else {
-        widget.idle_style
-    };
-    let circle = Rect::new(center.saturating_sub(4), y, 8, 4);
-    let gate_color = widget.border_style.fg.unwrap_or(Color::Reset);
-    let marker_color = style.fg.unwrap_or(Color::Reset);
-    Canvas::default()
-        .marker(Marker::Braille)
-        .x_bounds([-1.1, 1.1])
-        .y_bounds([-1.1, 1.1])
-        .paint(|context| {
-            context.draw(&Circle::new(0.0, 0.0, 1.0, gate_color));
-            context.layer();
-            context.draw(&Circle::new(
-                f64::from(x.clamp(-1.0, 1.0)) * 0.75,
-                f64::from(axis_y.clamp(-1.0, 1.0)) * 0.75,
-                0.08,
-                marker_color,
-            ));
-        })
-        .render(circle, buffer);
-    Paragraph::new(
-        Line::styled(
-            format!("{} {}", control.label(), if pressed { "●" } else { "○" }),
-            style,
-        )
-        .alignment(Alignment::Center),
-    )
-    .render(Rect::new(center.saturating_sub(5), y + 4, 10, 1), buffer);
-}
-
 pub(super) fn render_art_diamond(
     cluster: Option<&ControlCluster>,
     center: u16,
@@ -162,4 +102,42 @@ pub(super) fn render_art_diamond(
         widget.active_style,
     ))
     .render(Rect::new(center.saturating_sub(9), y, 18, 3), buffer);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{ClusterPlacement, Control, ControlValue, GamepadState};
+    use ratatui::style::Color;
+
+    #[test]
+    fn shoulder_art_separates_trigger_and_bumper() {
+        let cluster = ControlCluster::new("Left shoulder")
+            .with_placement(ClusterPlacement::LeftShoulder)
+            .with_controls([
+                Control::new("LB", ControlValue::button(false)),
+                Control::new("LT", ControlValue::trigger(0.5)),
+            ]);
+        let state = GamepadState::default();
+        let widget = GamepadWidget::new(&state);
+        let area = Rect::new(0, 0, 9, 6);
+        let mut buffer = Buffer::empty(area);
+
+        render_shoulder(Some(&cluster), 4, 0, &mut buffer, widget);
+        let symbols = buffer
+            .content()
+            .iter()
+            .map(ratatui::buffer::Cell::symbol)
+            .collect::<String>();
+
+        assert!(symbols.contains("LT"));
+        assert!(symbols.contains("LB"));
+        assert!(buffer.content().iter().any(|cell| cell.fg == Color::Cyan));
+        assert!(
+            buffer
+                .content()
+                .iter()
+                .any(|cell| cell.fg == Color::DarkGray)
+        );
+    }
 }
