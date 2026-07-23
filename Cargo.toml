@@ -30,6 +30,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 [dev-dependencies]
 claims = "0.8"
 rstest = "0.26"
+tempfile = "3"
 
 [workspace.lints.clippy]
 nursery = "warn"

@@ -20,6 +20,7 @@ pub(super) fn render_help(frame: &mut Frame<'_>, area: Rect) {
         Line::from("  ↑ ↓ / j k        Select a connected controller"),
         Line::from("  r                 Run a 300 ms rumble test"),
         Line::from("  x                 Reset selected-device observations"),
+        Line::from("  e                 Export JSON and text reports"),
         Line::from("  p                 Pause event auto-scrolling"),
         Line::from("  ↑ / ↓             Scroll paused events"),
         Line::from("  f / v             Filter event kind / device"),
