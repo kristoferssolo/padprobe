@@ -8,7 +8,7 @@ use ratatui::{
 };
 
 pub(super) fn render_help(frame: &mut Frame<'_>, area: Rect) {
-    let popup = centered_rect(58, 14, area);
+    let popup = centered_rect(64, 22, area);
     frame.render_widget(Clear, popup);
     let help = Paragraph::new(vec![
         Line::from("Keyboard controls"),
@@ -39,4 +39,29 @@ pub(super) fn render_help(frame: &mut Frame<'_>, area: Rect) {
     )
     .wrap(Wrap { trim: true });
     frame.render_widget(help, popup);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ratatui::{Terminal, backend::TestBackend};
+
+    #[test]
+    fn help_popup_keeps_the_final_explanation_visible() {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).expect("test terminal should initialize");
+
+        terminal
+            .draw(|frame| render_help(frame, frame.area()))
+            .expect("help should render");
+
+        let rendered = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(ratatui::buffer::Cell::symbol)
+            .collect::<String>();
+        assert!(rendered.contains("Disconnected selections are retained"));
+    }
 }
