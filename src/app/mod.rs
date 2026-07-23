@@ -1,20 +1,15 @@
+mod connection;
 mod device;
 mod diagnostics;
 mod event;
 mod event_filter;
 mod input;
 mod navigation;
-#[cfg(test)]
-mod tests;
 use crate::analysis::{ControlChecklist, DriftTest, RangeTest};
 pub use device::{AxisState, DeviceMetadata, DeviceState, StickTrace};
 use event::FIRST_EVENT_SEQUENCE;
 pub use event::{EVENT_CAPACITY, EventEntry};
 pub use event_filter::{EventDeviceFilter, EventKindFilter, EventSearchState};
-#[cfg(test)]
-use gilrs::Axis;
-#[cfg(test)]
-use input::{apply_button_value, update_stick_trace};
 pub use navigation::AppTab;
 use std::{
     collections::{HashMap, VecDeque},
@@ -80,56 +75,6 @@ impl App {
         }
     }
 
-    pub fn connect(&mut self, id: usize, metadata: DeviceMetadata) {
-        let name = metadata.name.clone();
-        if let Some(device) = self.devices.get_mut(&id) {
-            device.metadata = metadata;
-            device.connected = true;
-            device.clear_input_state();
-        } else {
-            self.devices.insert(id, DeviceState::new(metadata));
-            self.device_order.push(id);
-        }
-
-        if self.selected_id.is_none() {
-            self.selected_id = Some(id);
-        }
-
-        self.status = format!("{name} connected");
-        self.push_event(Some(id), "Connected".to_owned());
-    }
-
-    pub fn disconnect(&mut self, id: usize) {
-        let Some(device) = self.devices.get_mut(&id) else {
-            return;
-        };
-
-        device.connected = false;
-        device.clear_input_state();
-        let name = device.metadata.name.clone();
-        self.status = if self.selected_id == Some(id) {
-            format!("Selected controller disconnected: {name}")
-        } else {
-            format!("{name} disconnected")
-        };
-        self.push_event(Some(id), "Disconnected".to_owned());
-        if self.drift_test.device_id() == Some(id) {
-            self.drift_test.cancel();
-            self.record_notice_for(Some(id), "Drift test cancelled: controller disconnected");
-        }
-        if self.range_test.device_id() == Some(id) {
-            self.range_test.cancel();
-            self.record_notice_for(Some(id), "Range test cancelled: controller disconnected");
-        }
-        if self.control_checklist.device_id() == Some(id) {
-            self.control_checklist.finish();
-            self.record_notice_for(
-                Some(id),
-                "Control checklist interrupted: controller disconnected",
-            );
-        }
-    }
-
     #[must_use]
     #[inline]
     pub fn selected_device(&self) -> Option<(usize, &DeviceState)> {
@@ -141,5 +86,18 @@ impl App {
     #[inline]
     pub fn elapsed(&self) -> Duration {
         self.started_at.elapsed()
+    }
+}
+
+#[cfg(test)]
+fn metadata(name: &str) -> DeviceMetadata {
+    DeviceMetadata {
+        name: name.to_owned(),
+        vendor_id: None,
+        product_id: None,
+        uuid: "00".repeat(16),
+        mapping: "none".to_owned(),
+        power: "Unknown".to_owned(),
+        rumble_supported: false,
     }
 }

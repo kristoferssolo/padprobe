@@ -1,5 +1,9 @@
+#[cfg(test)]
+use super::metadata;
 use super::{App, AxisState, DeviceState};
 use crate::analysis::StickSide;
+#[cfg(test)]
+use claims::assert_some;
 use gilrs::{Axis, Button, EventType};
 
 impl App {
@@ -114,5 +118,35 @@ fn format_event(event: &EventType) -> String {
         EventType::Connected => "Connected".to_owned(),
         EventType::Disconnected => "Disconnected".to_owned(),
         _ => format!("{event:?}"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn analog_button_values_are_preserved() {
+        let mut app = App::new();
+        app.connect(1, metadata("controller"));
+        let device = assert_some!(app.devices.get_mut(&1));
+
+        apply_button_value(device, Button::LeftTrigger2, 0.37);
+
+        let value = app.devices[&1].button_values[&Button::LeftTrigger2];
+        assert!((value - 0.37).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn stick_trace_records_paired_axis_positions() {
+        let mut app = App::new();
+        app.connect(1, metadata("controller"));
+        let device = assert_some!(app.devices.get_mut(&1));
+        device.axes.insert(Axis::LeftStickX, AxisState::new(0.5));
+        update_stick_trace(device, Axis::LeftStickX);
+        device.axes.insert(Axis::LeftStickY, AxisState::new(-0.25));
+        update_stick_trace(device, Axis::LeftStickY);
+
+        assert_eq!(device.left_stick_trace.points(), [(0.5, 0.0), (0.5, -0.25)]);
     }
 }

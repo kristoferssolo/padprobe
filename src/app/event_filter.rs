@@ -1,5 +1,9 @@
+#[cfg(test)]
+use super::metadata;
 use super::{App, EventEntry};
 use crate::analysis::{TimingMetrics, TimingSample};
+#[cfg(test)]
+use std::time::Duration;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
 pub enum EventKindFilter {
@@ -100,5 +104,34 @@ impl App {
             })
             .collect::<Vec<_>>();
         TimingMetrics::calculate(&samples)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn event_filters_combine_kind_device_and_search() {
+        let mut app = App::new();
+        app.connect(1, metadata("first"));
+        app.connect(2, metadata("second"));
+        app.selected_id = Some(1);
+        app.event_kind_filter = EventKindFilter::Axes;
+        app.event_device_filter = EventDeviceFilter::Selected;
+        app.event_search = "leftstick".to_owned();
+        let visible = EventEntry {
+            sequence: 1,
+            elapsed: Duration::ZERO,
+            device_id: Some(1),
+            description: "AxisChanged(LeftStickX, +0.100)".to_owned(),
+        };
+        let other_device = EventEntry {
+            device_id: Some(2),
+            ..visible.clone()
+        };
+
+        assert!(app.event_is_visible(&visible));
+        assert!(!app.event_is_visible(&other_device));
     }
 }
