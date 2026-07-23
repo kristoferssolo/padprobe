@@ -1,5 +1,11 @@
 use super::{App, input::stick_position};
+#[cfg(test)]
+use super::{AxisState, metadata};
 use crate::analysis::StickSide;
+#[cfg(test)]
+use claims::assert_some;
+#[cfg(test)]
+use gilrs::{Axis, Button};
 use std::time::Instant;
 
 impl App {
@@ -128,5 +134,33 @@ impl App {
         if self.drift_test.tick(now, position) {
             self.record_notice("Drift test completed");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::input::update_stick_trace;
+
+    #[test]
+    fn session_reset_preserves_live_input_and_clears_observations() {
+        let mut app = App::new();
+        app.connect(1, metadata("controller"));
+        let device = assert_some!(app.devices.get_mut(&1));
+        device.axes.insert(Axis::LeftStickX, AxisState::new(-0.4));
+        assert_some!(device.axes.get_mut(&Axis::LeftStickX)).update(0.25);
+        device.buttons.insert(Button::South, true);
+        update_stick_trace(device, Axis::LeftStickX);
+
+        app.reset_selected_observations();
+
+        let device = &app.devices[&1];
+        let axis = device.axes[&Axis::LeftStickX];
+        assert!((axis.current - 0.25).abs() < f32::EPSILON);
+        assert!((axis.minimum - 0.25).abs() < f32::EPSILON);
+        assert!((axis.maximum - 0.25).abs() < f32::EPSILON);
+        assert_eq!(axis.changes, 0);
+        assert!(device.buttons[&Button::South]);
+        assert!(device.left_stick_trace.points().is_empty());
     }
 }

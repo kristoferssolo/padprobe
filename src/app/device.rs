@@ -145,3 +145,32 @@ fn format_uuid(bytes: [u8; 16]) -> String {
     }
     uuid
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn axis_updates_preserve_observed_range() {
+        let mut state = AxisState::new(0.2);
+        state.update(-0.7);
+        state.update(0.5);
+
+        assert!((state.current - 0.5).abs() < f32::EPSILON);
+        assert!((state.minimum - -0.7).abs() < f32::EPSILON);
+        assert!((state.maximum - 0.5).abs() < f32::EPSILON);
+        assert_eq!(state.changes, 3);
+    }
+
+    #[test]
+    fn stick_trace_remains_bounded() {
+        let mut trace = StickTrace::default();
+
+        for index in 0_u16..512 {
+            trace.push(f32::from(index), 0.0);
+        }
+
+        assert!(trace.points().len() <= STICK_TRACE_CAPACITY);
+        assert_eq!(trace.points().last(), Some(&(511.0, 0.0)));
+    }
+}
