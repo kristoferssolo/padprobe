@@ -152,6 +152,15 @@ impl DriftTest {
         self.device_id
     }
 
+    #[must_use]
+    pub const fn result(&self) -> Option<&DriftMetrics> {
+        if let DriftState::Complete(metrics) = &self.state {
+            Some(metrics)
+        } else {
+            None
+        }
+    }
+
     pub fn select_side(&mut self, side: StickSide) {
         if matches!(self.state, DriftState::Ready | DriftState::Complete(_)) {
             self.side = side;
