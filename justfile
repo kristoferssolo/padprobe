@@ -32,9 +32,9 @@ clippy:
 docs:
     RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features
 
-# Run tests with nextest (skip if no tests exist)
+# Run tests with nextest
 test:
-    cargo nextest run --workspace --all-features --no-tests auto || true
+    cargo nextest run --workspace --all-features
 
 # Run the app
 run:

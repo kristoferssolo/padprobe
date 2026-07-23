@@ -1,0 +1,47 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: --deny warnings
+  RUSTDOCFLAGS: --deny warnings
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+      - name: Install Linux dependencies
+        run: sudo apt-get update && sudo apt-get install --yes libudev-dev
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+      - name: Configure sccache
+        uses: mozilla-actions/sccache-action@v0.0.10
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run Clippy
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+      - name: Run tests
+        run: |
+          cargo nextest run --locked --workspace --all-features
+          cargo test --locked --workspace --all-features --doc
+      - name: Check documentation
+        run: cargo doc --locked --workspace --all-features --document-private-items --no-deps
