@@ -131,3 +131,21 @@ impl RangeTest {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_retains_result_after_recording() {
+        let mut test = RangeTest::default();
+        test.start(4);
+        for degree in 0_u16..360 {
+            let angle = f32::from(degree).to_radians();
+            test.record(4, (angle.cos(), angle.sin()));
+        }
+
+        assert!(test.finish());
+        assert!(matches!(test.view(), RangeView::Complete { .. }));
+    }
+}

@@ -112,3 +112,25 @@ fn sector_index(x: f64, y: f64) -> usize {
     let angle = y.atan2(x).rem_euclid(std::f64::consts::TAU);
     ((angle / std::f64::consts::TAU * SECTOR_COUNT_F64).floor() as usize).min(SECTOR_COUNT - 1)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use claims::assert_some;
+
+    #[test]
+    fn complete_circle_covers_every_sector() {
+        let samples = (0_u16..360)
+            .map(|degree| {
+                let angle = f32::from(degree).to_radians();
+                (angle.cos(), angle.sin())
+            })
+            .collect::<Vec<_>>();
+
+        let metrics = assert_some!(RangeMetrics::calculate(&samples));
+
+        assert_eq!(metrics.missing_sector_count, 0);
+        assert!((metrics.angular_coverage_percent - 100.0).abs() < f64::EPSILON);
+        assert!(metrics.circularity_deviation < 1e-6);
+    }
+}
