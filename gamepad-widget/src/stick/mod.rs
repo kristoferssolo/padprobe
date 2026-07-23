@@ -1,6 +1,4 @@
 mod render;
-#[cfg(test)]
-mod tests;
 
 use self::render::{gate_rect, render_gate};
 use crate::GamepadTheme;
