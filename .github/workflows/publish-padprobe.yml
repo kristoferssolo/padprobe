@@ -65,6 +65,8 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
+      - name: Install Linux dependencies
+        run: sudo apt-get update && sudo apt-get install --yes libudev-dev
       - uses: dtolnay/rust-toolchain@stable
       - name: Publish crate
         env:
