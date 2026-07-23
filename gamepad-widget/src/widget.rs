@@ -19,9 +19,22 @@ use ratatui::{
 #[derive(Clone, Copy, Debug)]
 pub struct GamepadWidget<'state> {
     state: &'state GamepadState,
+    layout: GamepadLayout,
     border_style: Style,
     idle_style: Style,
     active_style: Style,
+}
+
+/// The layout policy used by [`GamepadWidget`].
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum GamepadLayout {
+    /// Uses the controller layout when all controls fit, otherwise a grid.
+    #[default]
+    Auto,
+    /// Prefers the controller layout and safely falls back when it cannot fit.
+    Controller,
+    /// Always renders every cluster in a responsive grid.
+    Grid,
 }
 
 impl<'state> GamepadWidget<'state> {
@@ -32,10 +45,19 @@ impl<'state> GamepadWidget<'state> {
         let theme = GamepadTheme::default();
         Self {
             state,
+            layout: GamepadLayout::default(),
             border_style: theme.border,
             idle_style: theme.idle,
             active_style: theme.active,
         }
+    }
+
+    /// Sets the layout policy.
+    #[must_use]
+    #[inline]
+    pub const fn layout(mut self, layout: GamepadLayout) -> Self {
+        self.layout = layout;
+        self
     }
 
     /// Applies a shared gamepad theme to the overview.
@@ -80,7 +102,7 @@ impl Widget for GamepadWidget<'_> {
             return;
         }
 
-        if can_render_controller(area, clusters) {
+        if self.layout != GamepadLayout::Grid && can_render_controller(area, clusters) {
             render_controller_art(area, buffer, self);
             return;
         }
@@ -837,6 +859,31 @@ mod tests {
         assert!(!symbols.contains("x +0.00"));
         assert!(symbols.contains('─'));
         assert!(!symbols.contains('┌'));
+    }
+
+    #[test]
+    fn explicit_grid_layout_bypasses_controller_art() {
+        let state = GamepadState::new([ControlCluster::new("Menu")
+            .with_placement(ClusterPlacement::Menu)
+            .with_control(Control::new(
+                "Start",
+                ControlValue::Button { pressed: false },
+            ))]);
+        let area = Rect::new(0, 0, 70, 25);
+        let mut buffer = Buffer::empty(area);
+
+        GamepadWidget::new(&state)
+            .layout(GamepadLayout::Grid)
+            .render(area, &mut buffer);
+
+        let symbols = buffer
+            .content()
+            .iter()
+            .map(ratatui::buffer::Cell::symbol)
+            .collect::<String>();
+        assert!(symbols.contains("Menu"));
+        assert!(symbols.contains("Start"));
+        assert!(symbols.contains('┌'));
     }
 
     #[test]

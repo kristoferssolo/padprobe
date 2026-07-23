@@ -9,13 +9,13 @@ mod widget;
 pub use model::{ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState};
 pub use stick::StickGauge;
 pub use theme::GamepadTheme;
-pub use widget::GamepadWidget;
+pub use widget::{GamepadLayout, GamepadWidget};
 
 pub mod prelude {
     //! Convenient imports for constructing and rendering gamepad state.
 
     pub use crate::{
-        ClusterPlacement, Control, ControlCluster, ControlValue, GamepadState, GamepadTheme,
-        GamepadWidget, StickGauge,
+        ClusterPlacement, Control, ControlCluster, ControlValue, GamepadLayout, GamepadState,
+        GamepadTheme, GamepadWidget, StickGauge,
     };
 }
