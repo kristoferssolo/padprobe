@@ -74,15 +74,18 @@ fn render_full(frame: &mut Frame<'_>, app: &App, area: Rect) {
     if area.width >= 96 && area.height >= 26 {
         render_dashboard(frame, app, vertical[1]);
     } else {
+        let block = Block::default().borders(Borders::ALL).title(" Dashboard ");
+        let inner = block.inner(vertical[1]);
         let content = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Min(10),
-                Constraint::Length(cmp::min(6, vertical[1].height / 4)),
+                Constraint::Length(cmp::min(6, inner.height / 4)),
             ])
-            .split(vertical[1]);
+            .split(inner);
         render_live_state(frame, app, content[0]);
         render_events(frame, app, content[1]);
+        frame.render_widget(block, vertical[1]);
     }
 }
 
@@ -92,12 +95,16 @@ fn render_dashboard(frame: &mut Frame<'_>, app: &App, area: Rect) {
     render_primary_diagnostics(frame, app, primary);
     render_raw_data(frame, app, raw);
     render_events(frame, app, events);
+    frame.render_widget(
+        Block::default().borders(Borders::ALL).title(" Dashboard "),
+        area,
+    );
 }
 
 fn dashboard_sections(area: Rect) -> [Rect; 4] {
     const PRIMARY_HEIGHT: u16 = 15;
 
-    let dashboard = dashboard_area(area);
+    let dashboard = dashboard_content_area(dashboard_area(area));
     let columns = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(42), Constraint::Percentage(58)])
@@ -136,7 +143,16 @@ fn dashboard_area(area: Rect) -> Rect {
         area.x + area.width.saturating_sub(width) / 2,
         area.y,
         width,
-        area.height.saturating_sub(1).min(MAX_HEIGHT),
+        area.height.min(MAX_HEIGHT),
+    )
+}
+
+const fn dashboard_content_area(area: Rect) -> Rect {
+    Rect::new(
+        area.x.saturating_add(1),
+        area.y.saturating_add(1),
+        area.width.saturating_sub(2),
+        area.height.saturating_sub(1),
     )
 }
 
@@ -257,11 +273,28 @@ mod tests {
     fn large_dashboard_keeps_events_short_and_wider() {
         let [controller, primary, raw, events] = dashboard_sections(Rect::new(0, 0, 240, 70));
 
-        assert_eq!(controller.height, 29);
+        assert_eq!(controller.height, 28);
         assert_eq!(primary.height, 15);
-        assert_eq!(raw.height, 14);
-        assert_eq!(events.height, 14);
+        assert_eq!(raw.height, 13);
+        assert_eq!(events.height, 13);
         assert!(raw.width < events.width);
         assert!(events.width >= 60);
+    }
+
+    #[test]
+    fn dashboard_has_a_complete_outer_contour() {
+        let backend = TestBackend::new(240, 40);
+        let mut terminal = Terminal::new(backend).expect("test terminal should initialize");
+
+        terminal
+            .draw(|frame| render(frame, &app()))
+            .expect("dashboard should render");
+
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(0, 1)].symbol(), "┌");
+        assert_eq!(buffer[(239, 1)].symbol(), "┐");
+        assert_eq!(buffer[(0, 38)].symbol(), "└");
+        assert_eq!(buffer[(239, 38)].symbol(), "┘");
+        assert_eq!(buffer[(0, 1)].fg, ratatui::style::Color::Reset);
     }
 }
