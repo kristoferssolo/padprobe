@@ -44,8 +44,7 @@ PadProbe requires a Rust toolchain and the Linux development dependencies
 required by `gilrs` (notably `libudev`).
 
 ```console
-cargo build --release
-./target/release/padprobe
+cargo run --release
 ```
 
 Run the complete local check suite with:
